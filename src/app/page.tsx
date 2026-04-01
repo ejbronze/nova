@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { PillarLabel } from "@/components/shared/PillarIcon";
 import { WeatherWidget } from "@/components/shared/WeatherWidget";
@@ -19,7 +19,7 @@ type DashboardCardId = (typeof DEFAULT_CARD_ORDER)[number];
 type DashboardCardSizeMap = Record<DashboardCardId, DashboardCardSize>;
 
 const tileBase =
-  "group relative overflow-hidden rounded-2xl border border-nova-border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md";
+  "group relative overflow-hidden rounded-2xl border border-nova-border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md";
 const SIZE_OPTIONS: DashboardCardSize[] = ["small", "medium", "large"];
 const DEFAULT_CARD_SIZES: DashboardCardSizeMap = {
   summary: "large",
@@ -31,16 +31,12 @@ const DEFAULT_CARD_SIZES: DashboardCardSizeMap = {
   bills: "medium",
 };
 
-const SIZE_LABELS: Record<DashboardCardSize, string> = {
-  small: "S",
-  medium: "M",
-  large: "L",
-};
+function getSizeIndex(size: DashboardCardSize) {
+  return SIZE_OPTIONS.indexOf(size);
+}
 
-function getNextCardSize(size: DashboardCardSize): DashboardCardSize {
-  if (size === "small") return "medium";
-  if (size === "medium") return "large";
-  return "small";
+function getSizeByIndex(index: number): DashboardCardSize {
+  return SIZE_OPTIONS[Math.max(0, Math.min(index, SIZE_OPTIONS.length - 1))]!;
 }
 
 function formatSleep(value?: number) {
@@ -155,8 +151,17 @@ export default function HomePage() {
 
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [draggingId, setDraggingId] = useState<DashboardCardId | null>(null);
+  const [hoveredCardId, setHoveredCardId] = useState<DashboardCardId | null>(null);
+  const [resizingId, setResizingId] = useState<DashboardCardId | null>(null);
   const [cardOrder, setCardOrder] = useState<DashboardCardId[]>(() => [...DEFAULT_CARD_ORDER]);
   const [cardSizes, setCardSizes] = useState<DashboardCardSizeMap>(DEFAULT_CARD_SIZES);
+  const resizeSessionRef = useRef<{
+    cardId: DashboardCardId;
+    handle: "left" | "right";
+    startX: number;
+    startSize: DashboardCardSize;
+    latestSize: DashboardCardSize;
+  } | null>(null);
 
   useEffect(() => {
     setCardOrder(orderCards(settings?.dashboardCardOrder));
@@ -210,6 +215,8 @@ export default function HomePage() {
 
   const resetDashboardLayout = async () => {
     setDraggingId(null);
+    setHoveredCardId(null);
+    setResizingId(null);
     setCardOrder([...DEFAULT_CARD_ORDER]);
     setCardSizes(DEFAULT_CARD_SIZES);
     await Promise.all([
@@ -218,9 +225,54 @@ export default function HomePage() {
     ]);
   };
 
+  useEffect(() => {
+    const onPointerMove = (event: PointerEvent) => {
+      const session = resizeSessionRef.current;
+      if (!session) return;
+      const direction = session.handle === "right" ? 1 : -1;
+      const delta = (event.clientX - session.startX) * direction;
+      const stepDelta = Math.round(delta / 90);
+      const nextSize = getSizeByIndex(getSizeIndex(session.startSize) + stepDelta);
+      if (nextSize === session.latestSize) return;
+      session.latestSize = nextSize;
+      setCardSizes((current) => ({ ...current, [session.cardId]: nextSize }));
+    };
+
+    const finishResize = () => {
+      const session = resizeSessionRef.current;
+      if (!session) return;
+      resizeSessionRef.current = null;
+      setResizingId(null);
+      void persistSizes({ ...cardSizes, [session.cardId]: session.latestSize });
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", finishResize);
+    window.addEventListener("pointercancel", finishResize);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", finishResize);
+      window.removeEventListener("pointercancel", finishResize);
+    };
+  }, [cardSizes]);
+
+  const startResize = (cardId: DashboardCardId, handle: "left" | "right", clientX: number) => {
+    setResizingId(cardId);
+    resizeSessionRef.current = {
+      cardId,
+      handle,
+      startX: clientX,
+      startSize: cardSizes[cardId],
+      latestSize: cardSizes[cardId],
+    };
+  };
+
   const cards = useMemo(() => {
     const summary = (
-      <section className={`${tileBase} ${getCardHeight("summary", cardSizes.summary)} ${getCardSpan("summary", cardSizes.summary)}`}>
+      <section
+        className={`${tileBase} ${getCardHeight("summary", cardSizes.summary)} ${getCardSpan("summary", cardSizes.summary)}`}
+        style={{ background: theme ? `linear-gradient(145deg, ${theme.accent}12 0%, white 44%)` : 'white' }}
+      >
         <div className="p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -271,7 +323,8 @@ export default function HomePage() {
 
     const money = (
       <Link href="/money" className={getCardSpan("money", cardSizes.money)}>
-        <article className={`${tileBase} h-full ${getCardHeight("money", cardSizes.money)}`}>
+        <article className={`${tileBase} h-full ${getCardHeight("money", cardSizes.money)} bg-gradient-to-br from-money-light to-white`}>
+          <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-money to-money/25" />
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-money">
@@ -279,7 +332,7 @@ export default function HomePage() {
               </p>
               <span className="text-xs text-nova-muted opacity-0 transition-opacity group-hover:opacity-100">Open</span>
             </div>
-            <p className="font-serif text-[2rem] leading-none text-nova-text">{formatCurrency(totalBalance, cur)}</p>
+            <p className="font-serif text-[2.25rem] leading-none text-nova-text">{formatCurrency(totalBalance, cur)}</p>
             <div className="mt-4 space-y-2 text-xs">
               <div className="flex items-center justify-between rounded-xl bg-nova-bg px-3 py-2">
                 <span className="text-nova-muted">Income</span>
@@ -301,7 +354,8 @@ export default function HomePage() {
 
     const health = (
       <Link href="/health" className={getCardSpan("health", cardSizes.health)}>
-        <article className={`${tileBase} h-full ${getCardHeight("health", cardSizes.health)}`}>
+        <article className={`${tileBase} h-full ${getCardHeight("health", cardSizes.health)} bg-gradient-to-br from-health-light to-white`}>
+          <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-health to-health/25" />
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-health">
@@ -309,7 +363,7 @@ export default function HomePage() {
               </p>
               <span className="text-xs text-nova-muted opacity-0 transition-opacity group-hover:opacity-100">Open</span>
             </div>
-            <p className="font-serif text-[2rem] leading-none text-nova-text">
+            <p className="font-serif text-[2.25rem] leading-[1.1] text-nova-text">
               {todayLog ? (todayLog.hivMed && todayLog.adderall ? "On track" : "Check in") : "Not logged"}
             </p>
             <div className="mt-4 space-y-2 text-xs">
@@ -341,7 +395,8 @@ export default function HomePage() {
 
     const life = (
       <Link href="/life" className={getCardSpan("life", cardSizes.life)}>
-        <article className={`${tileBase} h-full ${getCardHeight("life", cardSizes.life)}`}>
+        <article className={`${tileBase} h-full ${getCardHeight("life", cardSizes.life)} bg-gradient-to-br from-life-light to-white`}>
+          <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-life to-life/25" />
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-life">
@@ -349,7 +404,7 @@ export default function HomePage() {
               </p>
               <span className="text-xs text-nova-muted opacity-0 transition-opacity group-hover:opacity-100">Open</span>
             </div>
-            <p className="font-serif text-[2rem] leading-none text-nova-text">{openTasks.length}</p>
+            <p className="font-serif text-[2.25rem] leading-none text-nova-text">{openTasks.length}</p>
             <p className="mt-1 text-xs text-nova-muted">Open task{openTasks.length === 1 ? "" : "s"}</p>
             <div className="mt-4 space-y-2 text-xs">
               {overdueTasks.length > 0 && (
@@ -378,7 +433,7 @@ export default function HomePage() {
 
     const transactions = (
       <Link href="/money" className={getCardSpan("transactions", cardSizes.transactions)}>
-        <article className={`${tileBase} h-full ${getCardHeight("transactions", cardSizes.transactions)}`}>
+        <article className={`${tileBase} h-full ${getCardHeight("transactions", cardSizes.transactions)} bg-white`}>
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -414,7 +469,7 @@ export default function HomePage() {
 
     const billCards = (
       <Link href="/money" className={getCardSpan("bills", cardSizes.bills)}>
-        <article className={`${tileBase} h-full ${getCardHeight("bills", cardSizes.bills)}`}>
+        <article className={`${tileBase} h-full ${getCardHeight("bills", cardSizes.bills)} bg-white`}>
           <div className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -475,12 +530,15 @@ export default function HomePage() {
 
   return (
     <div className="animate-fadeIn">
-      <section className="overflow-hidden rounded-[28px] border border-nova-border bg-white shadow-[0_18px_48px_-28px_rgba(15,23,42,0.28)]">
-        <div className="border-b border-nova-border bg-[linear-gradient(180deg,#ffffff_0%,#fbfbf9_100%)] px-4 py-4 sm:px-5">
+      <section className="overflow-hidden rounded-[28px] border border-nova-border bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.18),0_8px_20px_-12px_rgba(15,23,42,0.07)]">
+        <div
+          className="border-b border-nova-border px-4 py-5 sm:px-6"
+          style={{ background: theme ? `linear-gradient(145deg, ${theme.accent}1a 0%, #ffffff 32%, #fbfbf9 100%)` : 'linear-gradient(180deg, #ffffff 0%, #fbfbf9 100%)' }}
+        >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-[12px] font-medium text-nova-muted">{dateLabel}</p>
-              <h1 className="mt-1 font-serif text-[2rem] leading-none text-nova-text">{getGreeting()}</h1>
+              <h1 className="mt-1 font-serif text-[2.75rem] leading-[1.1] text-nova-text">{getGreeting()}</h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
@@ -515,7 +573,7 @@ export default function HomePage() {
           </div>
           {isArrangeMode && (
             <p className="mt-3 text-xs text-nova-muted">
-              Drag from the handle, tap size once to cycle the card, or reset the whole layout. Everything saves automatically.
+              Hover a card to move it, drag either edge to resize it, and watch the layout shift live while you arrange.
             </p>
           )}
         </div>
@@ -526,47 +584,93 @@ export default function HomePage() {
               {cardOrder.map((cardId) => (
                 <div
                   key={cardId}
+                  onMouseEnter={() => setHoveredCardId(cardId)}
+                  onMouseLeave={() => setHoveredCardId((current) => (current === cardId ? null : current))}
                   onDragOver={(event) => {
                     event.preventDefault();
                   }}
-                  onDrop={(event) => {
+                  onDragEnter={(event) => {
                     if (!draggingId || draggingId === cardId) return;
                     event.preventDefault();
-                    const nextOrder = moveCard(cardOrder, draggingId, cardId);
-                    setDraggingId(null);
-                    void persistOrder(nextOrder);
+                    setCardOrder((current) => moveCard(current, draggingId, cardId));
                   }}
-                  className={`relative mb-3 break-inside-avoid cursor-grab active:cursor-grabbing ${
-                    draggingId === cardId ? "opacity-60" : ""
+                  onDrop={() => {
+                    if (!draggingId) return;
+                    const normalized = moveCard(cardOrder, draggingId, cardId);
+                    setDraggingId(null);
+                    void persistOrder(normalized);
+                  }}
+                  className={`relative mb-3 break-inside-avoid transition-all duration-200 ${
+                    draggingId === cardId ? "scale-[0.98] opacity-50" : "opacity-100"
                   }`}
                 >
-                  <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextSize = getNextCardSize(cardSizes[cardId]);
-                        const nextSizes = { ...cardSizes, [cardId]: nextSize };
-                        void persistSizes(nextSizes);
-                      }}
-                      className="flex h-8 min-w-[40px] items-center justify-center rounded-full border border-nova-border bg-white px-2 text-[10px] font-semibold text-nova-muted shadow-sm transition-colors hover:text-nova-text"
-                      aria-label={`Cycle ${cardId} card size`}
-                      title={`Size: ${SIZE_LABELS[cardSizes[cardId]]}`}
-                    >
-                      {SIZE_LABELS[cardSizes[cardId]]}
-                    </button>
-                    <button
-                      type="button"
-                      draggable
-                      onDragStart={() => setDraggingId(cardId)}
-                      onDragEnd={() => setDraggingId(null)}
-                      className="flex h-8 w-8 cursor-grab items-center justify-center rounded-full border border-nova-border bg-white text-nova-muted shadow-sm active:cursor-grabbing"
-                      aria-label={`Drag ${cardId} card`}
-                      title="Drag card"
-                    >
-                      <GripVertical size={14} />
-                    </button>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      startResize(cardId, "left", event.clientX);
+                    }}
+                    className={`absolute bottom-3 left-0 top-3 z-20 flex w-6 -translate-x-1/2 cursor-ew-resize items-center justify-center rounded-full border border-nova-border bg-white/95 text-nova-muted shadow-sm transition-all ${
+                      hoveredCardId === cardId || resizingId === cardId
+                        ? "opacity-100 shadow-[0_16px_30px_rgba(15,23,42,0.14)]"
+                        : "opacity-55"
+                    }`}
+                    aria-label={`Resize ${cardId} from left edge`}
+                    title="Drag edge to resize"
+                  >
+                    <span className="h-16 w-1.5 rounded-full bg-nova-border" />
+                  </button>
+
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) => {
+                      setDraggingId(cardId);
+                      event.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      void persistOrder(cardOrder);
+                    }}
+                    className={`absolute left-1/2 top-1/2 z-20 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border border-white/10 bg-black/55 text-white shadow-[0_14px_32px_rgba(0,0,0,0.28)] backdrop-blur-sm transition-all active:cursor-grabbing ${
+                      hoveredCardId === cardId || draggingId === cardId ? "scale-100 opacity-100" : "scale-95 opacity-0"
+                    }`}
+                    aria-label={`Drag ${cardId} card`}
+                    title="Drag to move"
+                  >
+                    <GripVertical size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      startResize(cardId, "right", event.clientX);
+                    }}
+                    className={`absolute bottom-3 right-0 top-3 z-20 flex w-6 translate-x-1/2 cursor-ew-resize items-center justify-center rounded-full border border-nova-border bg-white/95 text-nova-muted shadow-sm transition-all ${
+                      hoveredCardId === cardId || resizingId === cardId
+                        ? "opacity-100 shadow-[0_16px_30px_rgba(15,23,42,0.14)]"
+                        : "opacity-55"
+                    }`}
+                    aria-label={`Resize ${cardId} from right edge`}
+                    title="Drag edge to resize"
+                  >
+                    <span className="h-16 w-1.5 rounded-full bg-nova-border" />
+                  </button>
+
+                  <div
+                    className={`absolute inset-0 z-10 rounded-[24px] border border-black/8 bg-[#d9dad6]/55 transition-opacity ${
+                      hoveredCardId === cardId || draggingId === cardId || resizingId === cardId ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+
+                  <div className={`pointer-events-none transition-all duration-200 ${
+                    hoveredCardId === cardId || draggingId === cardId || resizingId === cardId ? "grayscale-[0.55]" : ""
+                  }`}>
+                    {cards[cardId]}
                   </div>
-                  <div className="pointer-events-none">{cards[cardId]}</div>
                 </div>
               ))}
             </div>

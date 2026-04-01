@@ -357,19 +357,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="flex-1 py-8">
           <LandingVisuals />
 
-          <section className="mt-12">
-            <div className={`rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,245,244,0.95))] p-4 shadow-[0_30px_90px_-35px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:p-5 ${shake ? "[animation:shake_0.4s_ease-in-out]" : ""}`}>
-              <div className="grid gap-4 xl:grid-cols-[1.15fr_0.95fr_0.8fr] xl:items-center">
-                <div className="rounded-[26px] bg-white p-5 text-nova-text shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <Image src="/logo.svg" alt="Nova" width={42} height={42} className="rounded-xl" />
-                    <div>
-                      <p className="font-serif text-2xl">Nova</p>
-                      <p className="text-xs uppercase tracking-[0.22em] text-nova-hint">PalmchatInnovations Lab</p>
-                    </div>
+          <section className="mt-6">
+            <div
+              className={`rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,245,244,0.96))] p-4 shadow-[0_30px_90px_-35px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:p-5 ${shake ? "[animation:shake_0.4s_ease-in-out]" : ""}`}
+            >
+              <div className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr] xl:items-center">
+                <div className="relative overflow-hidden rounded-[28px] bg-white p-5 text-nova-text shadow-[0_4px_28px_rgba(79,124,255,0.1)] sm:p-6">
+                  <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#4F7CFF] via-[#5BB88A] to-[#F5A623]" />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-nova-text">Welcome back</p>
+                    <p className="text-sm text-nova-muted">Private by default. Demo restores your real data on exit.</p>
                   </div>
 
-                  <div className="mt-5 flex gap-3">
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
                     <input
                       type="password"
                       value={code}
@@ -380,38 +380,39 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                       onKeyDown={(event) => event.key === "Enter" && submit()}
                       placeholder="Access code"
                       autoFocus
-                      className={`flex-1 rounded-2xl border px-4 py-3 text-sm tracking-[0.24em] outline-none transition-colors ${
+                      className={`rounded-2xl border px-4 py-3 text-sm tracking-[0.24em] outline-none transition-colors ${
                         error ? "border-danger bg-danger/5 text-danger" : "border-nova-border bg-nova-bg focus:border-money focus:bg-white"
                       }`}
                     />
                     <button
                       onClick={submit}
                       disabled={!code}
-                      className="rounded-2xl bg-nova-text px-5 py-3 text-sm font-medium text-white transition-all hover:bg-nova-text/90 active:scale-95 disabled:opacity-40"
+                      className="rounded-2xl bg-[#4F7CFF] px-5 py-3 text-sm font-medium text-white shadow-[0_4px_14px_rgba(79,124,255,0.38)] transition-all hover:bg-[#3a6aee] active:scale-95 disabled:opacity-40"
                     >
                       Log in
+                    </button>
+                    <button
+                      onClick={() => void startDemo()}
+                      disabled={isStartingDemo}
+                      className="rounded-2xl border border-nova-border px-5 py-3 text-sm font-medium text-nova-text transition-colors hover:bg-nova-bg disabled:opacity-50"
+                    >
+                      {isStartingDemo ? "Preparing demo…" : "Demo"}
                     </button>
                   </div>
 
                   {error && <p className="mt-3 text-xs text-danger">Incorrect code — try again</p>}
-
-                  <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-                    <button
-                      onClick={() => void startDemo()}
-                      disabled={isStartingDemo}
-                      className="rounded-full border border-nova-border px-4 py-2 font-medium text-nova-text transition-colors hover:bg-nova-bg disabled:opacity-50"
-                    >
-                      {isStartingDemo ? "Preparing demo…" : "Enter demo"}
-                    </button>
-                    <span className="text-nova-muted">Private by default. Demo restores your real data on exit.</span>
-                  </div>
                 </div>
 
-                <div className="rounded-[26px] bg-black/10 p-5 text-white">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">Join beta</p>
-                  <p className="mt-3 font-serif text-3xl leading-none">Stay close to the build.</p>
-                  <p className="mt-3 text-sm leading-6 text-white/65">
-                    Follow the product, request access, and tell Edwin how you want Nova to support the next version of your life.
+                <div className="rounded-[28px] border border-white/10 bg-black/12 p-5 text-white sm:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Join beta</p>
+                      <p className="mt-2 font-serif text-3xl leading-none">Stay close to the build.</p>
+                    </div>
+                    <p className="text-sm text-white/55">By Edwin Jaquez</p>
+                  </div>
+                  <p className="mt-3 max-w-lg text-sm leading-6 text-white/65">
+                    Request access, follow the product, and share what kind of future you want Nova to help support.
                   </p>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <input
@@ -444,15 +445,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                     </button>
                   </div>
                 </div>
-
-                <div className="rounded-[26px] bg-black/10 p-5 text-white/74">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Why it feels premium</p>
-                  <div className="mt-4 space-y-3 text-sm leading-6">
-                    <p>Full-width visual story, not a cramped login wall.</p>
-                    <p>Sign-reactive mockup and motion-led branding.</p>
-                    <p>Founder-built by Edwin Jaquez under PalmchatInnovations Lab.</p>
-                  </div>
-                </div>
               </div>
             </div>
           </section>
@@ -462,7 +454,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="font-medium text-white/60">Nova by PalmchatInnovations Lab</p>
-              <p className="mt-1">A zodiac-guided personal life OS by Edwin Jaquez.</p>
+              <p className="mt-1">A personal life OS for money, health, and life — by Edwin Jaquez.</p>
             </div>
             <div className="flex flex-wrap gap-4">
               <span>Private by default</span>
