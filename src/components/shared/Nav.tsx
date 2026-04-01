@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +21,9 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-50 flex items-center gap-2 px-6 h-14 bg-white border-b border-nova-border">
-      <Link href="/" className="font-serif text-xl tracking-tight mr-4">
-        Nova<span className="text-money">.</span>
+      <Link href="/" className="flex items-center gap-2 mr-4">
+        <Image src="/logo.svg" alt="Nova" width={28} height={28} className="rounded-lg" />
+        <span className="font-serif text-xl tracking-tight">Nova<span className="text-money">.</span></span>
       </Link>
 
       {navItems.map((item) => {

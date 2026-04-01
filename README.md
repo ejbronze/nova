@@ -1,33 +1,33 @@
 # Nova — Your Personal Life OS
 
-A private, local-first app for managing **money**, **health**, and **life admin** in one place. Built for clarity, speed, and ADHD-friendly UX.
+> A private, local-first personal operating system for **money**, **health**, and **life admin**. Everything in one place, nothing leaves your device.
 
-## Stack
+---
 
-- **Next.js 14** (App Router)
-- **TypeScript** + strict mode
-- **Tailwind CSS** — custom design tokens
-- **Dexie.js** — IndexedDB, all data stays in your browser
-- **Recharts** — spending & mood charts
-- **Zustand** — app-wide settings state
-- **React Hook Form + Zod** — validated forms
-- **DM Serif Display + DM Sans** — fonts
+## What it does
+
+Nova replaces the scattered spreadsheets, note apps, and habit trackers with a single, fast, beautifully designed dashboard. It's built for real life — with dual-currency support (USD + DOP), medication tracking, gym logging, debt payoff, and a task system that doesn't get in your way.
+
+---
 
 ## Features
 
 ### 💰 Money
 - Track income, expenses & withdrawals across multiple accounts (USD + DOP)
-- Bills tracker with due-date countdown
-- Debt payoff progress bars
-- Monthly income vs expenses bar chart
-- Spending by category donut chart
-- Live USD ↔ DOP converter with editable rate
+- DOP → USD auto-conversion when logging transactions (editable rate)
+- Bills tracker with due-date countdown and one-click mark-paid
+- Debt view with animated category filter (Credit Card, Collections, Mortgage, Other)
+- Monthly income vs expenses bar chart + spending by category donut
+- Live USD ↔ DOP FX converter with editable rate
+- Financial incentive / streak system for staying on budget
 
 ### 🌿 Health
-- Daily medication log (HIV med, Adderall, cannabis) with timestamps
-- Mood tracker (1–5 scale) + sleep logging
-- 31-day calendar view color-coded by compliance
-- Streak counter for each medication
+- Daily medication log (HIV med, Adderall, cannabis) with time stamps
+- Mood tracker (1–5) + sleep logging (rounded to nearest tenth)
+- Gym session logger — workout name, cardio toggle, type / duration / distance
+- Gym tab with cardio history bar charts (duration + distance)
+- 31-day calendar view color-coded by medication compliance
+- Streak counters per medication + logging streak
 - 30-day mood trend chart
 
 ### 🗂 Life Admin
@@ -39,9 +39,26 @@ A private, local-first app for managing **money**, **health**, and **life admin*
 
 ### ⚙️ Settings
 - Switch primary currency (USD / DOP)
-- Update exchange rate
-- Full JSON export/import backup
+- Update exchange rate manually
+- Full JSON export / import backup
 - One-click data reset
+
+---
+
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript (strict) |
+| Styling | Tailwind CSS + custom design tokens |
+| Database | Dexie.js (IndexedDB — fully local) |
+| Charts | Recharts |
+| State | Zustand |
+| Forms | React Hook Form + Zod |
+| Fonts | DM Serif Display + DM Sans |
+
+---
 
 ## Getting Started
 
@@ -50,32 +67,28 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000).
 
-The app seeds realistic sample data on first load. All data is stored in IndexedDB — nothing leaves your device.
+The app seeds realistic sample data on first load. All data lives in your browser's IndexedDB — no backend, no accounts, nothing sent anywhere.
+
+---
+
+## Deploy
+
+Deployed on Vercel. The `vercel.json` at the root sets the framework to `nextjs` and output directory to `.next`.
+
+```bash
+npm run build   # local build check
+```
+
+---
 
 ## Data & Privacy
 
-Nova is 100% local-first. There is no backend, no analytics, no accounts. Your data lives in your browser's IndexedDB. Use **Settings → Export** to back up regularly.
+Nova is 100% local-first. There is no server, no analytics, no user accounts. Use **Settings → Export** to back up your data as JSON, and **Import** to restore it on any device.
 
-## Customising
+---
 
-- **Exchange rate** — update anytime in Settings or via the FX Converter card
-- **Add transactions** — click "Add Transaction" on the Money page
-- **Log health** — the Health → Today tab auto-creates or updates today's entry as you tap
-- **Tasks** — add inline from the Tasks tab; check off to complete
+## Logo
 
-## Build
-
-```bash
-npm run build
-npm start
-```
-
-Or export as a static site:
-
-```bash
-# next.config.mjs — add: output: 'export'
-npm run build
-# serves from /out
-```
+Three constellation nodes — **blue** (money), **green** (health), **orange** (life) — connected by subtle lines on a dark background. Represents the three interconnected pillars of your personal OS.

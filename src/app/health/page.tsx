@@ -244,7 +244,10 @@ function TodayLog() {
               type="number"
               min={0} max={24} step={0.5}
               value={log?.sleep ?? ""}
-              onChange={e => update({ sleep: parseFloat(e.target.value) || undefined })}
+              onChange={e => {
+                const raw = parseFloat(e.target.value);
+                update({ sleep: isNaN(raw) ? undefined : Math.round(raw * 10) / 10 });
+              }}
               placeholder="Hours"
               className="w-24 px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
             />

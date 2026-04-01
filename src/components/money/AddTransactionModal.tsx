@@ -1,12 +1,14 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Modal, Button } from "@/components/ui";
 import { db } from "@/lib/db";
 import { generateId, todayStr, TRANSACTION_CATEGORIES } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
 import type { Transaction } from "@/types";
 
 const schema = z.object({
@@ -14,6 +16,7 @@ const schema = z.object({
   type: z.enum(["income", "expense", "withdrawal"]),
   amount: z.coerce.number().positive("Amount must be positive"),
   currency: z.enum(["USD", "DOP"]),
+  usdAmount: z.coerce.number().optional(),
   description: z.string().min(1, "Description required"),
   category: z.string().min(1, "Category required"),
   paymentMethod: z.enum(["cash", "debit", "credit", "transfer", "other"]),
@@ -26,8 +29,10 @@ type FormData = z.infer<typeof schema>;
 
 export function AddTransactionModal({ onClose }: { onClose: () => void }) {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
+  const { settings } = useAppStore();
+  const dopRate = settings?.dopRate ?? 59.5;
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       date: todayStr(),
@@ -39,12 +44,34 @@ export function AddTransactionModal({ onClose }: { onClose: () => void }) {
     },
   });
 
+  const currency = useWatch({ control, name: "currency" });
+  const amount = useWatch({ control, name: "amount" });
+
+  // Auto-fill usdAmount when DOP amount changes
+  useEffect(() => {
+    if (currency === "DOP" && amount && amount > 0) {
+      setValue("usdAmount", parseFloat((amount / dopRate).toFixed(2)));
+    } else {
+      setValue("usdAmount", undefined);
+    }
+  }, [currency, amount, dopRate, setValue]);
+
   async function onSubmit(data: FormData) {
-    const tx: Transaction = {
+    const tx: Transaction & { usdAmount?: number } = {
       id: generateId(),
-      ...data,
+      date: data.date,
+      type: data.type,
+      amount: data.amount,
+      currency: data.currency,
+      description: data.description,
+      category: data.category,
+      paymentMethod: data.paymentMethod,
+      accountId: data.accountId,
+      notes: data.notes,
+      isRecurring: data.isRecurring,
       tags: [],
       createdAt: new Date().toISOString(),
+      ...(data.currency === "DOP" && data.usdAmount ? { usdAmount: data.usdAmount } : {}),
     };
     await db.transactions.add(tx);
     reset();
@@ -94,6 +121,25 @@ export function AddTransactionModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
         </div>
+
+        {/* DOP → USD conversion row */}
+        {currency === "DOP" && (
+          <div className="bg-money/5 border border-money/20 rounded-xl p-3">
+            <label className={`${lbl} text-money`}>USD Equivalent <span className="normal-case font-normal text-nova-muted">(auto · 1 USD = {dopRate} DOP)</span></label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-money">$</span>
+              <input
+                type="number"
+                step="0.01"
+                {...register("usdAmount")}
+                className="flex-1 px-3 py-2 border border-money/30 rounded-xl bg-white text-sm text-nova-text outline-none focus:border-money transition-colors"
+                placeholder="0.00"
+              />
+              <span className="text-xs text-nova-muted">USD</span>
+            </div>
+            <p className="text-xs text-nova-muted mt-1.5">Manually edit if the rate differs</p>
+          </div>
+        )}
 
         <div>
           <label className={lbl}>Category</label>
