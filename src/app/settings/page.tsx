@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { downloadJSON } from "@/lib/utils";
 import { ZODIAC_THEMES, ELEMENT_EMOJI } from "@/lib/themes";
 import { Card, CardHeader, CardTitle, PageHeader, Button } from "@/components/ui";
+import { ZodiacIcon } from "@/components/shared/ZodiacIcon";
 import { Download, Upload, RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function SettingsPage() {
@@ -92,10 +93,10 @@ export default function SettingsPage() {
                 >
                   {/* Color swatch — nav bg preview */}
                   <div
-                    className="w-full h-8 rounded-lg mb-2 flex items-center justify-center text-lg"
+                    className="w-full h-10 rounded-lg mb-2 flex items-center justify-center"
                     style={{ backgroundColor: theme.navBg }}
                   >
-                    <span>{theme.symbol}</span>
+                    <ZodiacIcon sign={theme.sign} size={28} className="border-white/10 bg-white/5 text-white" />
                   </div>
 
                   {/* Accent dot */}

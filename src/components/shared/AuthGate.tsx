@@ -456,6 +456,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </div>
           </section>
         </div>
+
+        <footer className="border-t border-white/10 py-6 text-sm text-white/45">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-medium text-white/60">Nova by PalmchatInnovations Lab</p>
+              <p className="mt-1">A zodiac-guided personal life OS by Edwin Jaquez.</p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <span>Private by default</span>
+              <span>Demo-safe exploration</span>
+              <span>Built for money, health, and life</span>
+            </div>
+          </div>
+        </footer>
       </div>
 
       <style>{`
