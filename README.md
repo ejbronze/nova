@@ -8,7 +8,7 @@
 
 Nova replaces the scattered spreadsheets, note apps, and habit trackers with a single, fast, beautifully designed dashboard. It's built for real life — with dual-currency support (USD + DOP), medication tracking, gym logging, debt payoff, and a task system that doesn't get in your way.
 
-The latest pass adds a zodiac-powered personalization layer, a more fluid masonry home dashboard, a weather snapshot, and a branded startup animation so the app feels more like a living personal cockpit than a static tracker.
+The latest pass adds a zodiac-powered personalization layer, a more fluid masonry home dashboard, a weather snapshot, a branded startup animation, and a public-facing landing experience with demo access so the app feels more like a real product than a static tracker.
 
 ---
 
@@ -56,6 +56,13 @@ The latest pass adds a zodiac-powered personalization layer, a more fluid masonr
 - Masonry-style home dashboard with drag arrangement mode and saved card sizing
 - Weather widget on the home screen for a quick local conditions snapshot
 - Animated black intro screen where the three logo nodes bounce into place before sign-in
+- PalmchatInnovations Lab / Edwin Jaquez creator branding woven into the intro and entry flow
+
+### 🚪 Entry Experience
+- Public landing screen that explains what Nova is and why it exists
+- Access-code login for the private workspace
+- Demo mode with seeded sample data so visitors can safely explore the product
+- Waitlist / beta request CTA for early adopters and testers
 
 ---
 
@@ -85,6 +92,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The app seeds realistic sample data on first load. All data lives in your browser's IndexedDB — no backend, no accounts, nothing sent anywhere.
 
+The new entry flow includes a non-persistent demo workspace. Entering demo mode snapshots the current local data, swaps in demo data, and restores the original workspace when the demo session ends.
+
 If Google Fonts are unavailable in your network environment, local development still works, but a production `next build` may fail until those font assets can be fetched.
 
 ---
@@ -102,6 +111,8 @@ npm run build   # local build check
 ## Data & Privacy
 
 Nova is 100% local-first. There is no server, no analytics, no user accounts. Use **Settings → Export** to back up your data as JSON, and **Import** to restore it on any device.
+
+Demo mode is designed to be safe for real users. The demo workspace is temporary and restores the user's original local data on exit.
 
 ---
 
