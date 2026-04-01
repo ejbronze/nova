@@ -9,7 +9,7 @@ import { AddTransactionModal } from "@/components/money/AddTransactionModal";
 import { FXConverter } from "@/components/shared/FXConverter";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Plus, DollarSign, TrendingDown, CreditCard, Wallet } from "lucide-react";
-import type { Bill } from "@/types";
+import type { Bill, DebtCategory } from "@/types";
 
 const TABS = ["Overview", "Transactions", "Bills", "Debt", "Accounts"] as const;
 type Tab = typeof TABS[number];
@@ -21,6 +21,8 @@ export default function MoneyPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [txSearch, setTxSearch] = useState("");
   const [txFilter, setTxFilter] = useState<"all" | "income" | "expense">("all");
+  const [debtView, setDebtView] = useState<"all" | DebtCategory>("all");
+  const [debtFading, setDebtFading] = useState(false);
   const { settings } = useAppStore();
 
   const cur = settings?.primaryCurrency ?? "USD";
@@ -225,30 +227,96 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {tab === "Debt" && (
-        <div className="space-y-4">
-          {(debts ?? []).map(debt => {
-            const pct = Math.round(((debt.originalAmount - debt.currentBalance) / debt.originalAmount) * 100);
-            return (
-              <Card key={debt.id}>
-                <CardHeader>
-                  <CardTitle>{debt.name}</CardTitle>
-                  <span className="text-2xl font-bold text-danger">{formatCurrency(debt.currentBalance, debt.currency)}</span>
-                </CardHeader>
-                <div className="mt-2 mb-3">
-                  <ProgressBar value={pct} color="money" />
-                  <div className="flex justify-between text-xs text-nova-muted mt-1">
-                    <span>{pct}% paid off</span>
-                    <span>Original: {formatCurrency(debt.originalAmount, debt.currency)}</span>
-                  </div>
-                </div>
-                {debt.interestRate && <p className="text-xs text-nova-muted">APR: {debt.interestRate}% · Min payment: {debt.minimumPayment ? formatCurrency(debt.minimumPayment, debt.currency) : "—"}</p>}
-              </Card>
-            );
-          })}
-          {!debts?.length && <EmptyState emoji="🎉" title="No debt tracked" subtitle="Add debts to track payoff progress" />}
-        </div>
-      )}
+      {tab === "Debt" && (() => {
+        const DEBT_CATS: { key: "all" | DebtCategory; label: string; emoji: string }[] = [
+          { key: "all", label: "Total", emoji: "📊" },
+          { key: "credit_card", label: "Credit Card", emoji: "💳" },
+          { key: "collection", label: "Collections", emoji: "⚠️" },
+          { key: "mortgage", label: "Mortgage", emoji: "🏠" },
+          { key: "other", label: "Other", emoji: "📁" },
+        ];
+        const allDebts = debts ?? [];
+        const filteredDebts = debtView === "all"
+          ? allDebts
+          : allDebts.filter(d => (d.debtCategory ?? "other") === debtView);
+        const viewTotal = filteredDebts.reduce((s, d) => s + convert(d.currentBalance, d.currency), 0);
+        const catTotals: Record<string, number> = {};
+        allDebts.forEach(d => {
+          const cat = d.debtCategory ?? "other";
+          catTotals[cat] = (catTotals[cat] ?? 0) + convert(d.currentBalance, d.currency);
+        });
+
+        const switchView = (v: typeof debtView) => {
+          if (v === debtView) return;
+          setDebtFading(true);
+          setTimeout(() => { setDebtView(v); setDebtFading(false); }, 180);
+        };
+
+        return (
+          <div className="space-y-4">
+            {/* Summary card */}
+            <Card>
+              <div className={`transition-all duration-200 ${debtFading ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-nova-muted mb-1">
+                  {DEBT_CATS.find(c => c.key === debtView)?.emoji} {DEBT_CATS.find(c => c.key === debtView)?.label} Debt
+                </p>
+                <p className="font-serif text-4xl text-danger">{formatCurrency(viewTotal, cur)}</p>
+                {debtView === "all" && (
+                  <p className="text-xs text-nova-muted mt-1">{allDebts.length} account{allDebts.length !== 1 ? "s" : ""} tracked</p>
+                )}
+              </div>
+            </Card>
+
+            {/* Category selector */}
+            <div className="flex gap-2 flex-wrap">
+              {DEBT_CATS.map(cat => {
+                const amt = cat.key === "all" ? totalDebt : (catTotals[cat.key] ?? 0);
+                const hasDebts = cat.key === "all" ? allDebts.length > 0 : (catTotals[cat.key] ?? 0) > 0;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => switchView(cat.key)}
+                    className={`flex flex-col items-start px-4 py-2.5 rounded-xl border-2 transition-all text-left ${
+                      debtView === cat.key
+                        ? "border-danger bg-danger/5 text-danger"
+                        : "border-nova-border text-nova-muted hover:border-danger/40 hover:text-nova-text"
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{cat.emoji} {cat.label}</span>
+                    {hasDebts && <span className="text-xs opacity-70">{formatCurrency(amt, cur)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Debt list */}
+            <div className={`space-y-3 transition-all duration-200 ${debtFading ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
+              {filteredDebts.map(debt => {
+                const pct = Math.round(((debt.originalAmount - debt.currentBalance) / debt.originalAmount) * 100);
+                return (
+                  <Card key={debt.id}>
+                    <CardHeader>
+                      <CardTitle>{debt.name}</CardTitle>
+                      <span className="text-2xl font-bold text-danger">{formatCurrency(debt.currentBalance, debt.currency)}</span>
+                    </CardHeader>
+                    <div className="mt-2 mb-3">
+                      <ProgressBar value={pct} color="money" />
+                      <div className="flex justify-between text-xs text-nova-muted mt-1">
+                        <span>{pct}% paid off</span>
+                        <span>Original: {formatCurrency(debt.originalAmount, debt.currency)}</span>
+                      </div>
+                    </div>
+                    {debt.interestRate && <p className="text-xs text-nova-muted">APR: {debt.interestRate}% · Min payment: {debt.minimumPayment ? formatCurrency(debt.minimumPayment, debt.currency) : "—"}</p>}
+                  </Card>
+                );
+              })}
+              {filteredDebts.length === 0 && (
+                <EmptyState emoji="🎉" title={debtView === "all" ? "No debt tracked" : `No ${DEBT_CATS.find(c => c.key === debtView)?.label.toLowerCase()} debt`} subtitle={debtView === "all" ? "Add debts to track payoff progress" : "Nothing in this category"} />
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {tab === "Accounts" && (
         <div className="grid grid-cols-2 gap-4">

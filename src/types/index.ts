@@ -39,6 +39,8 @@ export interface Bill {
   createdAt: string;
 }
 
+export type DebtCategory = "credit_card" | "collection" | "mortgage" | "other";
+
 export interface Debt {
   id: string;
   name: string;
@@ -49,6 +51,7 @@ export interface Debt {
   minimumPayment?: number;
   dueDay?: number;
   accountId?: string;
+  debtCategory?: DebtCategory;
   notes?: string;
   createdAt: string;
 }
@@ -141,6 +144,21 @@ export interface Contact {
   email?: string;
   category: string;
   color: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// ─── GYM ──────────────────────────────────────────────────────────────────────
+export type CardioType = "run" | "bike" | "elliptical" | "swim" | "rowing" | "other";
+
+export interface GymSession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string;
+  isCardio: boolean;
+  cardioType?: CardioType;
+  duration?: number; // minutes
+  distance?: number; // miles
   notes?: string;
   createdAt: string;
 }

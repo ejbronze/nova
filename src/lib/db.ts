@@ -12,6 +12,7 @@ import type {
   HouseEntry,
   Contact,
   Settings,
+  GymSession,
 } from "@/types";
 
 export class NovaDatabase extends Dexie {
@@ -26,6 +27,7 @@ export class NovaDatabase extends Dexie {
   houseEntries!: Table<HouseEntry>;
   contacts!: Table<Contact>;
   settings!: Table<Settings & { id: number }>;
+  gymSessions!: Table<GymSession>;
 
   constructor() {
     super("NovaDB");
@@ -42,6 +44,10 @@ export class NovaDatabase extends Dexie {
       houseEntries: "id, category, createdAt",
       contacts: "id, category, createdAt",
       settings: "id",
+    });
+
+    this.version(2).stores({
+      gymSessions: "id, date, isCardio, createdAt",
     });
   }
 }
