@@ -1,17 +1,16 @@
 "use client";
-
-"use client";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { PillarLabel } from "@/components/shared/PillarIcon";
 import { cn } from "@/lib/utils";
 import { signOut } from "@/components/shared/AuthGate";
 
 const navItems = [
   { href: "/", label: "Home", activeClass: "bg-nova-text text-white" },
-  { href: "/money", label: "💰 Money", activeClass: "bg-money text-white" },
-  { href: "/health", label: "🌿 Health", activeClass: "bg-health text-white" },
-  { href: "/life", label: "🗂 Life", activeClass: "bg-life text-white" },
+  { href: "/money", label: <PillarLabel pillar="money" iconSize={15}>Money</PillarLabel>, activeClass: "bg-money text-white" },
+  { href: "/health", label: <PillarLabel pillar="health" iconSize={15}>Health</PillarLabel>, activeClass: "bg-health text-white" },
+  { href: "/life", label: <PillarLabel pillar="life" iconSize={15}>Life</PillarLabel>, activeClass: "bg-life text-white" },
 ];
 
 export function Nav() {

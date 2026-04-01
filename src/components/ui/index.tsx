@@ -95,7 +95,7 @@ export function AlertBanner({ type, title, subtitle, className = "" }: {
   );
 }
 
-export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: React.ReactNode }) {
+export function PageHeader({ title, subtitle, children }: { title: React.ReactNode; subtitle?: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between mb-6">
       <div>

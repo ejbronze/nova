@@ -1,6 +1,7 @@
 // ─── SHARED ───────────────────────────────────────────────────────────────────
 export type Currency = "USD" | "DOP";
 export type Pillar = "money" | "health" | "life";
+export type DashboardCardSize = "small" | "medium" | "large";
 
 // ─── MONEY ────────────────────────────────────────────────────────────────────
 export type TransactionType = "income" | "expense" | "withdrawal";
@@ -25,6 +26,7 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   currency: Currency;
+  usdAmount?: number;
   category: string;
   tags: string[];
   paymentMethod: PaymentMethod;
@@ -183,6 +185,8 @@ export interface Settings {
   primaryCurrency: Currency;
   theme: "light" | "dark";
   zodiacTheme?: ZodiacSign;
+  dashboardCardOrder?: string[];
+  dashboardCardSizes?: Record<string, DashboardCardSize>;
 }
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────

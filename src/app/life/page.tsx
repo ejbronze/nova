@@ -1,17 +1,66 @@
 "use client";
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { generateId, todayStr } from "@/lib/utils";
+import { PillarLabel } from "@/components/shared/PillarIcon";
 import { Card, CardHeader, CardTitle, PageHeader, Badge, Button, EmptyState } from "@/components/ui";
 import { Plus, ExternalLink, CheckSquare, Square } from "lucide-react";
-import type { Task, TaskCategory } from "@/types";
+import type { Task, TaskCategory, QuickLink } from "@/types";
 
 const TABS = ["Dashboard", "Tasks", "Quick Links", "House Manual", "Contacts", "Notes"] as const;
 type Tab = typeof TABS[number];
 
 const PRIORITY_COLORS = { low: "muted", medium: "warning", high: "danger" } as const;
 const CAT_EMOJI: Record<string, string> = { home: "🏠", health: "💊", work: "💼", finance: "💰", personal: "👤", other: "📌" };
+
+function getQuickLinkBranding(link: QuickLink) {
+  try {
+    const hostname = new URL(link.url).hostname.replace(/^www\./, "");
+    const label = hostname.split(".")[0]?.slice(0, 2).toUpperCase() || link.name.slice(0, 2).toUpperCase();
+    return {
+      faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`,
+      hostname,
+      fallbackLabel: label,
+    };
+  } catch {
+    return {
+      faviconUrl: "",
+      hostname: "",
+      fallbackLabel: link.name.slice(0, 2).toUpperCase(),
+    };
+  }
+}
+
+function QuickLinkLogo({ link, size = "md" }: { link: QuickLink; size?: "sm" | "md" }) {
+  const [failed, setFailed] = useState(false);
+  const { faviconUrl, hostname, fallbackLabel } = getQuickLinkBranding(link);
+  const containerClass = size === "sm" ? "h-9 w-9 rounded-xl" : "h-11 w-11 rounded-2xl";
+  const imageClass = size === "sm" ? "h-5 w-5" : "h-6 w-6";
+  const textClass = size === "sm" ? "text-[10px]" : "text-xs";
+
+  const handleError = (event: SyntheticEvent<HTMLImageElement>) => {
+    event.currentTarget.style.display = "none";
+    setFailed(true);
+  };
+
+  return (
+    <span className={`relative flex shrink-0 items-center justify-center border border-nova-border bg-white shadow-sm ${containerClass}`}>
+      {!failed && faviconUrl ? (
+        <img
+          src={faviconUrl}
+          alt={`${link.name} logo`}
+          className={imageClass}
+          onError={handleError}
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <span className={`font-semibold tracking-wide text-nova-muted ${textClass}`}>{fallbackLabel}</span>
+      )}
+      {hostname ? <span className="sr-only">{hostname}</span> : null}
+    </span>
+  );
+}
 
 function TaskList() {
   const [showAdd, setShowAdd] = useState(false);
@@ -138,7 +187,7 @@ function QuickLinks() {
             {(items ?? []).map(link => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-nova-border hover:border-life hover:bg-life/5 transition-all group">
-                <span className="text-xl">{link.emoji}</span>
+                <QuickLinkLogo link={link} />
                 <span className="text-sm font-medium flex-1 truncate">{link.name}</span>
                 <ExternalLink size={12} className="text-nova-muted group-hover:text-life opacity-0 group-hover:opacity-100 transition-all" />
               </a>
@@ -289,8 +338,8 @@ function LifeDashboard() {
             <div className="grid grid-cols-2 gap-2">
               {(links ?? []).map(l => (
                 <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-nova-bg transition-all text-center">
-                  <span className="text-xl">{l.emoji}</span>
+                  className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-nova-bg transition-all text-center">
+                  <QuickLinkLogo link={l} size="sm" />
                   <span className="text-xs text-nova-muted">{l.name}</span>
                 </a>
               ))}
@@ -325,7 +374,7 @@ export default function LifePage() {
 
   return (
     <div className="animate-fadeIn">
-      <PageHeader title="🗂 Life Admin" subtitle="Tasks, links & home management" />
+      <PageHeader title={<PillarLabel pillar="life" iconSize={20}>Life Admin</PillarLabel>} subtitle="Tasks, links & home management" />
 
       <div className="flex gap-1 mb-6 bg-white border border-nova-border rounded-xl p-1 w-fit flex-wrap">
         {TABS.map(t => (

@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { useAppStore } from "@/lib/store";
-import { formatCurrency, getDaysUntilDue, getBillDueLabel, TRANSACTION_CATEGORIES, getCategoryEmoji, generateId, todayStr } from "@/lib/utils";
-import { Card, CardHeader, CardTitle, StatCard, Badge, PageHeader, Button, ProgressBar, Toggle, EmptyState } from "@/components/ui";
-import { AddTransactionModal } from "@/components/money/AddTransactionModal";
+import { formatCurrency, getDaysUntilDue, getBillDueLabel, getCategoryEmoji, todayStr } from "@/lib/utils";
+import { Card, CardHeader, CardTitle, StatCard, Badge, PageHeader, Button, ProgressBar, EmptyState } from "@/components/ui";
+import { AddTransactionModal, type AddTransactionDraft } from "@/components/money/AddTransactionModal";
 import { AccountModal, ACCOUNT_TYPE_META } from "@/components/money/AccountModal";
 import { FXConverter } from "@/components/shared/FXConverter";
+import { PillarLabel } from "@/components/shared/PillarIcon";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Plus, DollarSign, TrendingDown, Wallet } from "lucide-react";
+import { Plus, DollarSign, TrendingDown, Wallet, ArrowRight, Lightbulb, Sparkles, PartyPopper } from "lucide-react";
 import type { Bill, DebtCategory, Account } from "@/types";
 
 const TABS = ["Overview", "Transactions", "Bills", "Debt", "Accounts"] as const;
@@ -17,9 +18,17 @@ type Tab = typeof TABS[number];
 
 const CHART_COLORS = ["#4F7CFF", "#5BB88A", "#F5A623", "#F25F5C", "#A78BFA", "#34D399", "#F87171", "#60A5FA"];
 
+const MONEY_FACTS = [
+  "People who review spending weekly are more likely to notice small leaks before they become monthly habits.",
+  "Giving every incoming dollar a job can make budgeting feel calmer because fewer decisions pile up later.",
+  "Tiny recurring charges often feel harmless, but they are usually the easiest budget wins to trim.",
+  "Logging a purchase right away makes the rest of your dashboard much more useful by the end of the week.",
+];
+
 export default function MoneyPage() {
   const [tab, setTab] = useState<Tab>("Overview");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [transactionDraft, setTransactionDraft] = useState<AddTransactionDraft | undefined>(undefined);
   const [txSearch, setTxSearch] = useState("");
   const [txFilter, setTxFilter] = useState<"all" | "income" | "expense">("all");
   const [debtView, setDebtView] = useState<"all" | DebtCategory>("all");
@@ -47,6 +56,10 @@ export default function MoneyPage() {
   const net = income - spent;
   const totalBalance = (accounts ?? []).reduce((s, a) => s + convert(a.balance, a.currency), 0);
   const totalDebt = (debts ?? []).reduce((s, d) => s + convert(d.currentBalance, d.currency), 0);
+  const recentTransactions = transactions?.slice(0, 5) ?? [];
+  const txCountThisMonth = monthTx.length;
+  const expenseCountThisMonth = monthTx.filter(t => t.type === "expense").length;
+  const incomeCountThisMonth = monthTx.filter(t => t.type === "income").length;
 
   // Spending by category for donut
   const catMap: Record<string, number> = {};
@@ -54,6 +67,60 @@ export default function MoneyPage() {
     catMap[t.category] = (catMap[t.category] ?? 0) + convert(t.amount, t.currency);
   });
   const pieData = Object.entries(catMap).map(([name, value]) => ({ name, value: Math.round(value) }));
+  const topCategory = Object.entries(catMap).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const savingsRate = income > 0 ? Math.round((Math.max(net, 0) / income) * 100) : 0;
+  const factOfTheMoment = MONEY_FACTS[(txCountThisMonth + recentTransactions.length) % MONEY_FACTS.length];
+
+  const openTransactionPrompt = (draft?: AddTransactionDraft) => {
+    setTransactionDraft(draft);
+    setShowAddModal(true);
+  };
+
+  const promptCards: Array<{
+    title: string;
+    description: string;
+    action: string;
+    draft: AddTransactionDraft;
+  }> = [
+    {
+      title: "Log a quick expense",
+      description: "Capture what you just spent while it is still fresh.",
+      action: "Add expense",
+      draft: { type: "expense", category: topCategory ?? "Food", description: "" },
+    },
+    {
+      title: "Record incoming money",
+      description: "Paychecks, transfers, and reimbursements count too.",
+      action: "Add income",
+      draft: { type: "income", category: "Salary", description: "" },
+    },
+    {
+      title: "Track a routine payment",
+      description: "Small recurring charges are the easiest budget wins to spot.",
+      action: "Add recurring",
+      draft: { type: "expense", isRecurring: true, category: "Bills", description: "" },
+    },
+  ];
+
+  const encouragement = !txCountThisMonth
+    ? "One logged transaction is enough to get this month moving."
+    : net >= 0 && txCountThisMonth >= 3
+      ? `You are in the black this month. That ${formatCurrency(net, cur)} cushion is real progress.`
+      : incomeCountThisMonth === 0
+        ? "Adding income entries will make your budget picture much more honest."
+        : "Every transaction you log sharpens your budget and makes the next decision easier.";
+
+  const coachingTip = spent > income && income > 0
+    ? "Spending is ahead of income this month. Try logging the next three purchases as they happen to find the pressure point."
+    : topCategory
+      ? `${topCategory} is your biggest spending category right now. A tiny trim there will usually matter more than cutting five smaller things.`
+      : "Start simple: log meals, transport, and subscriptions first. Those usually tell the clearest story fast.";
+
+  const celebration = net > 0
+    ? `Saved ${formatCurrency(net, cur)} this month`
+    : expenseCountThisMonth >= 5
+      ? `${expenseCountThisMonth} expenses tracked this month`
+      : `${recentTransactions.length} recent transaction${recentTransactions.length === 1 ? "" : "s"} captured`;
 
   // Monthly bar chart (last 6 months)
   const barData = Array.from({ length: 6 }, (_, i) => {
@@ -75,13 +142,19 @@ export default function MoneyPage() {
     return true;
   });
 
+  const getUsdDisplayAmount = (tx: { amount: number; currency: "USD" | "DOP"; usdAmount?: number }) => {
+    if (tx.currency === "USD") return tx.amount;
+    if (typeof tx.usdAmount === "number" && Number.isFinite(tx.usdAmount)) return tx.usdAmount;
+    return Number((tx.amount / rate).toFixed(2));
+  };
+
   const markBillPaid = async (bill: Bill) => {
     await db.bills.update(bill.id, { status: "paid", lastPaidDate: todayStr() });
   };
 
   return (
     <div className="animate-fadeIn">
-      <PageHeader title="💰 Money" subtitle="Track income, expenses & debt">
+      <PageHeader title={<PillarLabel pillar="money" iconSize={20}>Money</PillarLabel>} subtitle="Track income, expenses & debt">
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowAddModal(true)}>
           Add Transaction
         </Button>
@@ -107,6 +180,98 @@ export default function MoneyPage() {
             <StatCard label="Income" value={formatCurrency(income, cur)} sub="this month" accent="money" icon={<TrendingDown size={18} className="rotate-180" />} />
             <StatCard label="Spent" value={formatCurrency(spent, cur)} sub="this month" accent="money" icon={<TrendingDown size={18} />} />
             <StatCard label="Saved" value={formatCurrency(net, cur)} sub={net >= 0 ? "🎉 great!" : "⚠️ over budget"} accent={net >= 0 ? "money" : undefined} icon={<DollarSign size={18} />} />
+          </div>
+
+          <div className="grid grid-cols-[1.6fr_1fr] gap-5 mb-5">
+            <Card className="overflow-hidden border-money/20 bg-[linear-gradient(135deg,rgba(79,124,255,0.08),rgba(91,184,138,0.03))]">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-money mb-3">
+                    <Sparkles size={13} />
+                    Money Momentum
+                  </div>
+                  <h2 className="text-2xl font-semibold tracking-tight text-nova-text mb-2">Make budgeting feel easier to keep up with.</h2>
+                  <p className="text-sm leading-6 text-nova-muted max-w-xl">{encouragement}</p>
+                </div>
+                <div className="shrink-0 rounded-2xl border border-money/15 bg-white/80 px-4 py-3 text-right">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-nova-muted">Small Win</p>
+                  <p className="text-base font-semibold text-money mt-1">{celebration}</p>
+                  <p className="text-xs text-nova-muted mt-1">
+                    {income > 0 ? `${savingsRate}% of income kept` : "Consistency beats intensity"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {promptCards.map((prompt) => (
+                  <button
+                    key={prompt.title}
+                    type="button"
+                    onClick={() => openTransactionPrompt(prompt.draft)}
+                    className="group rounded-2xl border border-nova-border bg-white/90 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-money/40 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                  >
+                    <p className="text-sm font-semibold text-nova-text mb-1">{prompt.title}</p>
+                    <p className="text-xs leading-5 text-nova-muted mb-4">{prompt.description}</p>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-money">
+                      {prompt.action}
+                      <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-start justify-between gap-3 rounded-2xl border border-money/15 bg-white/75 px-4 py-3">
+                <div className="flex gap-3">
+                  <div className="mt-0.5 rounded-xl bg-money/10 p-2 text-money">
+                    <Lightbulb size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-nova-text">Budget nudge</p>
+                    <p className="text-xs leading-5 text-nova-muted">{coachingTip}</p>
+                  </div>
+                </div>
+                <Button variant="primary" className="shrink-0" onClick={() => openTransactionPrompt()}>
+                  Log transaction
+                </Button>
+              </div>
+            </Card>
+
+            <div className="space-y-4">
+              <Card>
+                <CardHeader><CardTitle>Today&apos;s Money Note</CardTitle></CardHeader>
+                <div className="flex gap-3">
+                  <div className="rounded-xl bg-money/10 p-2.5 text-money h-fit">
+                    <PartyPopper size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-nova-text mb-1">Celebrate the tiny wins.</p>
+                    <p className="text-sm leading-6 text-nova-muted">{factOfTheMoment}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle>Quick Focus</CardTitle></CardHeader>
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-nova-bg px-3 py-2.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-nova-muted mb-1">This month</p>
+                    <p className="text-sm text-nova-text">
+                      {txCountThisMonth
+                        ? `${txCountThisMonth} transactions logged so far.`
+                        : "No transactions logged yet this month."}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-nova-bg px-3 py-2.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-nova-muted mb-1">Next best move</p>
+                    <p className="text-sm text-nova-text">
+                      {recentTransactions.length
+                        ? "Log the next purchase as soon as it happens so your dashboard stays trustworthy."
+                        : "Start with one real transaction today. Momentum is easier once the page reflects real life."}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
 
           <div className="grid grid-cols-[2fr_1fr] gap-5 mb-5">
@@ -190,7 +355,9 @@ export default function MoneyPage() {
                   <p className={`text-sm font-semibold ${tx.type === "income" ? "text-health" : ""}`}>
                     {tx.type === "income" ? "+" : "−"}{formatCurrency(tx.amount, tx.currency)}
                   </p>
-                  <p className="text-xs text-nova-muted">{tx.currency}</p>
+                  <p className="text-xs text-nova-muted">
+                    {tx.currency === "DOP" ? `${formatCurrency(getUsdDisplayAmount(tx), "USD")} USD` : tx.currency}
+                  </p>
                 </div>
               </div>
             ))}
@@ -367,7 +534,15 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {showAddModal && (
+        <AddTransactionModal
+          initialValues={transactionDraft}
+          onClose={() => {
+            setShowAddModal(false);
+            setTransactionDraft(undefined);
+          }}
+        />
+      )}
       {accountModal.open && (
         <AccountModal
           account={accountModal.account}

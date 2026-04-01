@@ -26,8 +26,24 @@ const schema = z.object({
 });
 
 type FormData = z.infer<typeof schema>;
+export type AddTransactionDraft = Partial<FormData>;
 
-export function AddTransactionModal({ onClose }: { onClose: () => void }) {
+const DEFAULT_FORM_VALUES: Partial<FormData> = {
+  date: todayStr(),
+  type: "expense",
+  currency: "USD",
+  paymentMethod: "debit",
+  isRecurring: false,
+  accountId: "",
+};
+
+export function AddTransactionModal({
+  onClose,
+  initialValues,
+}: {
+  onClose: () => void;
+  initialValues?: AddTransactionDraft;
+}) {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const { settings } = useAppStore();
   const dopRate = settings?.dopRate ?? 59.5;
@@ -35,17 +51,20 @@ export function AddTransactionModal({ onClose }: { onClose: () => void }) {
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      date: todayStr(),
-      type: "expense",
-      currency: "USD",
-      paymentMethod: "debit",
-      isRecurring: false,
-      accountId: "",
+      ...DEFAULT_FORM_VALUES,
+      ...initialValues,
     },
   });
 
   const currency = useWatch({ control, name: "currency" });
   const amount = useWatch({ control, name: "amount" });
+
+  useEffect(() => {
+    reset({
+      ...DEFAULT_FORM_VALUES,
+      ...initialValues,
+    });
+  }, [initialValues, reset]);
 
   // Auto-fill usdAmount when DOP amount changes
   useEffect(() => {
@@ -74,7 +93,9 @@ export function AddTransactionModal({ onClose }: { onClose: () => void }) {
       ...(data.currency === "DOP" && data.usdAmount ? { usdAmount: data.usdAmount } : {}),
     };
     await db.transactions.add(tx);
-    reset();
+    reset({
+      ...DEFAULT_FORM_VALUES,
+    });
     onClose();
   }
 

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Settings } from "@/types";
+import type { Settings, DashboardCardSize } from "@/types";
 import type { ZodiacSign } from "@/lib/themes";
 import { getSettings, updateSettings } from "@/lib/db";
 
@@ -14,6 +14,8 @@ interface AppState {
   setDopRate: (rate: number) => Promise<void>;
   setPrimaryCurrency: (currency: "USD" | "DOP") => Promise<void>;
   setZodiacTheme: (sign: ZodiacSign | undefined) => Promise<void>;
+  setDashboardCardOrder: (cardOrder: string[]) => Promise<void>;
+  setDashboardCardSizes: (cardSizes: Record<string, DashboardCardSize>) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -47,5 +49,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   setZodiacTheme: async (sign) => {
     await updateSettings({ zodiacTheme: sign });
     set((s) => ({ settings: { ...s.settings, zodiacTheme: sign } }));
+  },
+
+  setDashboardCardOrder: async (cardOrder) => {
+    await updateSettings({ dashboardCardOrder: cardOrder });
+    set((s) => ({ settings: { ...s.settings, dashboardCardOrder: cardOrder } }));
+  },
+
+  setDashboardCardSizes: async (cardSizes) => {
+    await updateSettings({ dashboardCardSizes: cardSizes });
+    set((s) => ({ settings: { ...s.settings, dashboardCardSizes: cardSizes } }));
   },
 }));

@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { todayStr, calculateStreak, generateId } from "@/lib/utils";
+import { PillarLabel } from "@/components/shared/PillarIcon";
 import { Card, CardHeader, CardTitle, PageHeader, Badge, Button, EmptyState } from "@/components/ui";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import type { HealthLog, MoodLevel, GymSession, CardioType } from "@/types";
@@ -147,12 +148,55 @@ function GymSessionModal({ onClose }: { onClose: () => void }) {
 
 const MOOD_LABELS: Record<number, string> = { 1: "😞 Low", 2: "😕 Meh", 3: "😐 Okay", 4: "🙂 Good", 5: "😊 Great" };
 
+function sleepToDraft(value?: number) {
+  if (value == null || Number.isNaN(value)) return { hours: "", minutes: "" };
+  const totalMinutes = Math.max(0, Math.round(value * 60));
+  return {
+    hours: String(Math.floor(totalMinutes / 60)),
+    minutes: String(totalMinutes % 60),
+  };
+}
+
+function draftToSleep(hours: string, minutes: string) {
+  const parsedHours = parseInt(hours || "0", 10);
+  const parsedMinutes = parseInt(minutes || "0", 10);
+  const safeHours = Number.isNaN(parsedHours) ? 0 : Math.max(0, parsedHours);
+  const safeMinutes = Number.isNaN(parsedMinutes) ? 0 : Math.min(59, Math.max(0, parsedMinutes));
+  if (!hours && !minutes) return undefined;
+  return (safeHours * 60 + safeMinutes) / 60;
+}
+
+function formatSleep(value?: number) {
+  if (value == null || Number.isNaN(value)) return "No sleep logged";
+  const totalMinutes = Math.round(value * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!minutes) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
 function TodayLog() {
   const today = todayStr();
   const log = useLiveQuery(() => db.healthLogs.get({ date: today }), [today]);
   const todayGymSessions = useLiveQuery(() => db.gymSessions.where("date").equals(today).toArray(), [today]);
   const [saving, setSaving] = useState(false);
   const [showGymModal, setShowGymModal] = useState(false);
+  const [sleepHours, setSleepHours] = useState("");
+  const [sleepMinutes, setSleepMinutes] = useState("");
+  const [notesDraft, setNotesDraft] = useState("");
+  const [hivMedTimeDraft, setHivMedTimeDraft] = useState("");
+  const [adderallTimeDraft, setAdderallTimeDraft] = useState("");
+  const [weedNotesDraft, setWeedNotesDraft] = useState("");
+
+  useEffect(() => {
+    const sleepDraft = sleepToDraft(log?.sleep);
+    setSleepHours(sleepDraft.hours);
+    setSleepMinutes(sleepDraft.minutes);
+    setNotesDraft(log?.notes ?? "");
+    setHivMedTimeDraft(log?.hivMedTime ?? "");
+    setAdderallTimeDraft(log?.adderallTime ?? "");
+    setWeedNotesDraft(log?.weedNotes ?? "");
+  }, [log]);
 
   const update = async (patch: Partial<HealthLog>) => {
     setSaving(true);
@@ -180,6 +224,7 @@ function TodayLog() {
     const timeField = field === "hivMed" ? "hivMedTime" : field === "adderall" ? "adderallTime" : null;
     const patch: Partial<HealthLog> = { [field]: newVal };
     if (timeField) patch[timeField] = newVal ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : undefined;
+    if (field === "weed" && !newVal) patch.weedNotes = undefined;
     update(patch);
   };
 
@@ -199,22 +244,83 @@ function TodayLog() {
         </CardHeader>
         <div className="space-y-4">
           {meds.map(med => (
-            <div key={med.key} className={`flex items-center justify-between p-3 rounded-xl transition-all ${log?.[med.key] ? "bg-nova-bg" : "bg-white"}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{med.emoji}</span>
-                <div>
-                  <p className="font-medium text-sm">{med.label}</p>
-                  {med.timeKey && log?.[med.timeKey] && (
-                    <p className="text-xs text-nova-muted">Logged at {log[med.timeKey]}</p>
-                  )}
+            <div key={med.key} className={`p-3 rounded-xl transition-all border ${log?.[med.key] ? "bg-nova-bg border-nova-border" : "bg-white border-nova-border"}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{med.emoji}</span>
+                  <div>
+                    <p className="font-medium text-sm">{med.label}</p>
+                    {med.timeKey && log?.[med.timeKey] && (
+                      <p className="text-xs text-nova-muted">Logged at {log[med.timeKey]}</p>
+                    )}
+                  </div>
                 </div>
+                <button
+                  onClick={() => toggle(med.key)}
+                  className={`w-12 h-6 rounded-full transition-all relative ${log?.[med.key] ? "bg-health" : "bg-nova-border"}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${log?.[med.key] ? "left-6" : "left-0.5"}`} />
+                </button>
               </div>
-              <button
-                onClick={() => toggle(med.key)}
-                className={`w-12 h-6 rounded-full transition-all relative ${log?.[med.key] ? "bg-health" : "bg-nova-border"}`}
-              >
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${log?.[med.key] ? "left-6" : "left-0.5"}`} />
-              </button>
+
+              {med.key === "hivMed" && log?.hivMed && (
+                <div className="mt-3 flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="text-[11px] uppercase tracking-wide text-nova-hint block mb-1">Time</label>
+                    <input
+                      type="time"
+                      value={hivMedTimeDraft}
+                      onChange={e => setHivMedTimeDraft(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
+                    />
+                  </div>
+                  <Button variant="outline" className="h-[38px]" onClick={() => update({ hivMedTime: hivMedTimeDraft || undefined })}>
+                    Save
+                  </Button>
+                </div>
+              )}
+
+              {med.key === "adderall" && log?.adderall && (
+                <div className="mt-3 flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="text-[11px] uppercase tracking-wide text-nova-hint block mb-1">Time</label>
+                    <input
+                      type="time"
+                      value={adderallTimeDraft}
+                      onChange={e => setAdderallTimeDraft(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
+                    />
+                  </div>
+                  <Button variant="outline" className="h-[38px]" onClick={() => update({ adderallTime: adderallTimeDraft || undefined })}>
+                    Save
+                  </Button>
+                </div>
+              )}
+
+              {med.key === "weed" && log?.weed && (
+                <div className="mt-3 space-y-2">
+                  <div>
+                    <label className="text-[11px] uppercase tracking-wide text-nova-hint block mb-1">Details</label>
+                    <textarea
+                      value={weedNotesDraft}
+                      onChange={e => setWeedNotesDraft(e.target.value)}
+                      placeholder="Dose, reason, how it felt..."
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => update({ weedNotes: weedNotesDraft.trim() || undefined })}>
+                      Save details
+                    </Button>
+                    {log?.weedNotes && (
+                      <Button variant="ghost" onClick={() => { setWeedNotesDraft(""); update({ weedNotes: undefined }); }}>
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -234,36 +340,76 @@ function TodayLog() {
               </button>
             ))}
           </div>
-          {log?.mood && <p className="text-sm text-center mt-2 text-nova-muted">{MOOD_LABELS[log.mood]}</p>}
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-sm text-nova-muted">{log?.mood ? MOOD_LABELS[log.mood] : "Choose today’s mood"}</p>
+            {log?.mood && (
+              <button onClick={() => update({ mood: undefined })} className="text-xs text-nova-muted hover:text-nova-text underline">
+                Clear
+              </button>
+            )}
+          </div>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Sleep</CardTitle></CardHeader>
-          <div className="flex items-center gap-3">
-            <input
-              type="number"
-              min={0} max={24} step={0.5}
-              value={log?.sleep ?? ""}
-              onChange={e => {
-                const raw = parseFloat(e.target.value);
-                update({ sleep: isNaN(raw) ? undefined : Math.round(raw * 10) / 10 });
-              }}
-              placeholder="Hours"
-              className="w-24 px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
-            />
-            <span className="text-sm text-nova-muted">hours last night</span>
+          <div className="grid grid-cols-[96px_96px_1fr] gap-3 items-end">
+            <div>
+              <label className="text-[11px] uppercase tracking-wide text-nova-hint block mb-1">Hours</label>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                value={sleepHours}
+                onChange={e => setSleepHours(e.target.value)}
+                placeholder="7"
+                className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] uppercase tracking-wide text-nova-hint block mb-1">Minutes</label>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={sleepMinutes}
+                onChange={e => setSleepMinutes(e.target.value)}
+                placeholder="30"
+                className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => update({ sleep: draftToSleep(sleepHours, sleepMinutes) })}>
+                Save sleep
+              </Button>
+              {log?.sleep != null && (
+                <Button variant="ghost" onClick={() => { setSleepHours(""); setSleepMinutes(""); update({ sleep: undefined }); }}>
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
+          <p className="text-xs text-nova-muted mt-2">Current: {formatSleep(log?.sleep)}</p>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
           <textarea
-            value={log?.notes ?? ""}
-            onChange={e => update({ notes: e.target.value })}
+            value={notesDraft}
+            onChange={e => setNotesDraft(e.target.value)}
             placeholder="How are you feeling today?"
             rows={3}
             className="w-full px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health resize-none"
           />
+          <div className="mt-3 flex gap-2">
+            <Button variant="outline" onClick={() => update({ notes: notesDraft.trim() || undefined })}>
+              Save notes
+            </Button>
+            {(log?.notes || notesDraft) && (
+              <Button variant="ghost" onClick={() => { setNotesDraft(""); update({ notes: undefined }); }}>
+                Clear
+              </Button>
+            )}
+          </div>
         </Card>
       </div>
     </div>
@@ -498,7 +644,7 @@ export default function HealthPage() {
 
   return (
     <div className="animate-fadeIn">
-      <PageHeader title="🌿 Health" subtitle="Daily wellness tracking" />
+      <PageHeader title={<PillarLabel pillar="health" iconSize={20}>Health</PillarLabel>} subtitle="Daily wellness tracking" />
 
       <div className="flex gap-1 mb-6 bg-white border border-nova-border rounded-xl p-1 w-fit">
         {TABS.map(t => (
