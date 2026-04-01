@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import Image from "next/image";
+import { LandingVisuals } from "@/components/shared/LandingVisuals";
 import { createDemoSnapshot, exportAllData, importAllData } from "@/lib/db";
 
 const SESSION_KEY = "nova_session";
@@ -353,54 +354,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="hidden text-sm text-white/60 md:block">Designed and built by Edwin Jaquez</p>
         </header>
 
-        <div className="grid flex-1 gap-10 py-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <section className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.22em] text-white/70 backdrop-blur">
-              Local-first money, health, and life OS
-            </div>
-            <h1 className="mt-6 font-serif text-5xl leading-[0.98] text-white sm:text-6xl">
-              One beautiful dashboard for your money, health, and daily life.
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
-              Nova is a premium-feeling personal command center that helps you budget better, stay on top of medication and routines, and keep life admin beautifully organized. Built by Edwin Jaquez under PalmchatInnovations Lab.
-            </p>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {[
-                {
-                  title: "Money with momentum",
-                  body: "Guided prompts, dual-currency support, bills, debt payoff, and small-win encouragement.",
-                },
-                {
-                  title: "Health that feels human",
-                  body: "Medication tracking, mood and sleep logs, gym history, and editable daily details.",
-                },
-                {
-                  title: "Life admin, finally elegant",
-                  body: "Tasks, notes, house details, branded quick links, and a dashboard you can shape around your flow.",
-                },
-              ].map((item, index) => (
-                <div
-                  key={item.title}
-                  className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md"
-                  style={{ animation: `fadeIn 0.45s ease ${0.15 + index * 0.12}s both` }}
-                >
-                  <p className="text-sm font-semibold text-white">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/60">{item.body}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              {["private by default", "masonry dashboard", "zodiac themes", "demo workspace", "offline-friendly"].map((tag) => (
-                <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70">
-                  {tag}
-                </span>
-              ))}
-            </div>
+        <div className="grid flex-1 gap-10 py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+          <section className="max-w-3xl">
+            <LandingVisuals />
           </section>
 
-          <section className="space-y-5">
+          <section className="space-y-5 lg:pl-2">
             <div className={`rounded-[28px] border border-white/10 bg-white p-7 text-center text-nova-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.6)] ${shake ? "[animation:shake_0.4s_ease-in-out]" : ""}`}>
               <div className="mb-5 flex justify-center">
                 <Image src="/logo.svg" alt="Nova" width={56} height={56} className="rounded-xl drop-shadow-md" />
@@ -448,7 +407,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               <p className="text-xs uppercase tracking-[0.24em] text-white/45">Waitlist / Beta</p>
               <h2 className="mt-2 font-serif text-2xl text-white">Request early access</h2>
               <p className="mt-2 text-sm leading-6 text-white/65">
-                Want to test Nova, give feedback, or follow the build? Send a beta request and let Edwin know how you'd use it.
+                Want to test Nova, give feedback, or follow the build? Send a beta request and let Edwin know how you want to reshape your future.
               </p>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -484,11 +443,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               {[
-                ["Built to feel legit", "Animated onboarding, refined typography, polished cards, and branded iconography throughout."],
+                ["Aspirational, not noisy", "The new landing flow leans on motion, symbolism, and atmosphere instead of stacking too many competing panels."],
                 ["Demo-safe exploration", "Demo mode swaps in a seeded workspace and restores your real data when you leave."],
-                ["Founder-led product", "PalmchatInnovations Lab and Edwin Jaquez are visibly credited throughout the experience."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
                   <p className="text-sm font-semibold text-white">{title}</p>
