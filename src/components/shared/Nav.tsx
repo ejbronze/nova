@@ -1,9 +1,11 @@
 "use client";
 
+"use client";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/components/shared/AuthGate";
 
 const navItems = [
   { href: "/", label: "Home", activeClass: "bg-nova-text text-white" },
@@ -55,6 +57,13 @@ export function Nav() {
       >
         ⚙️
       </Link>
+      <button
+        onClick={signOut}
+        className="ml-1 px-3 py-1.5 rounded-full text-[13px] font-medium text-nova-muted hover:bg-nova-bg hover:text-nova-text transition-all"
+        title="Sign out"
+      >
+        ↩
+      </button>
     </nav>
   );
 }
