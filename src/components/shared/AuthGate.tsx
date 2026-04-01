@@ -342,7 +342,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 overflow-y-auto bg-[#06070a] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(79,124,255,0.2),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(245,166,35,0.18),transparent_26%),linear-gradient(180deg,#07080b_0%,#0a0d12_100%)]" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1280px] flex-col px-6 py-8 lg:px-10">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1480px] flex-col px-5 py-8 sm:px-6 lg:px-10">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/logo.svg" alt="Nova" width={40} height={40} className="rounded-xl" />
@@ -354,105 +354,106 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="hidden text-sm text-white/60 md:block">Designed and built by Edwin Jaquez</p>
         </header>
 
-        <div className="grid flex-1 gap-10 py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <section className="max-w-3xl">
-            <LandingVisuals />
-          </section>
+        <div className="flex-1 py-8">
+          <LandingVisuals />
 
-          <section className="space-y-5 lg:pl-2">
-            <div className={`rounded-[28px] border border-white/10 bg-white p-7 text-center text-nova-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.6)] ${shake ? "[animation:shake_0.4s_ease-in-out]" : ""}`}>
-              <div className="mb-5 flex justify-center">
-                <Image src="/logo.svg" alt="Nova" width={56} height={56} className="rounded-xl drop-shadow-md" />
-              </div>
+          <section className="mt-12">
+            <div className={`rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,245,244,0.95))] p-4 shadow-[0_30px_90px_-35px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:p-5 ${shake ? "[animation:shake_0.4s_ease-in-out]" : ""}`}>
+              <div className="grid gap-4 xl:grid-cols-[1.15fr_0.95fr_0.8fr] xl:items-center">
+                <div className="rounded-[26px] bg-white p-5 text-nova-text shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <Image src="/logo.svg" alt="Nova" width={42} height={42} className="rounded-xl" />
+                    <div>
+                      <p className="font-serif text-2xl">Nova</p>
+                      <p className="text-xs uppercase tracking-[0.22em] text-nova-hint">PalmchatInnovations Lab</p>
+                    </div>
+                  </div>
 
-              <h1 className="mb-1 font-serif text-2xl text-nova-text">Nova</h1>
-              <p className="mb-1 text-sm text-nova-muted">A personal command center by Edwin Jaquez</p>
-              <p className="mb-7 text-xs uppercase tracking-[0.22em] text-nova-hint">PalmchatInnovations Lab</p>
+                  <div className="mt-5 flex gap-3">
+                    <input
+                      type="password"
+                      value={code}
+                      onChange={(event) => {
+                        setCode(event.target.value);
+                        setError(false);
+                      }}
+                      onKeyDown={(event) => event.key === "Enter" && submit()}
+                      placeholder="Access code"
+                      autoFocus
+                      className={`flex-1 rounded-2xl border px-4 py-3 text-sm tracking-[0.24em] outline-none transition-colors ${
+                        error ? "border-danger bg-danger/5 text-danger" : "border-nova-border bg-nova-bg focus:border-money focus:bg-white"
+                      }`}
+                    />
+                    <button
+                      onClick={submit}
+                      disabled={!code}
+                      className="rounded-2xl bg-nova-text px-5 py-3 text-sm font-medium text-white transition-all hover:bg-nova-text/90 active:scale-95 disabled:opacity-40"
+                    >
+                      Log in
+                    </button>
+                  </div>
 
-              <input
-                type="password"
-                value={code}
-                onChange={(event) => {
-                  setCode(event.target.value);
-                  setError(false);
-                }}
-                onKeyDown={(event) => event.key === "Enter" && submit()}
-                placeholder="Access code"
-                autoFocus
-                className={`mb-3 w-full rounded-xl border px-4 py-3 text-center text-sm tracking-[0.3em] outline-none transition-colors ${
-                  error ? "border-danger bg-danger/5 text-danger" : "border-nova-border bg-nova-bg focus:border-money focus:bg-white"
-                }`}
-              />
+                  {error && <p className="mt-3 text-xs text-danger">Incorrect code — try again</p>}
 
-              {error && <p className="mb-3 text-xs text-danger">Incorrect code — try again</p>}
-
-              <button
-                onClick={submit}
-                disabled={!code}
-                className="w-full rounded-xl bg-nova-text py-3 text-sm font-medium text-white transition-all hover:bg-nova-text/90 active:scale-95 disabled:opacity-40"
-              >
-                Log in
-              </button>
-
-              <button
-                onClick={() => void startDemo()}
-                disabled={isStartingDemo}
-                className="mt-3 w-full rounded-xl border border-nova-border py-3 text-sm font-medium text-nova-text transition-colors hover:bg-nova-bg disabled:opacity-50"
-              >
-                {isStartingDemo ? "Preparing demo…" : "Demo"}
-              </button>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-white/6 p-6 backdrop-blur-md">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/45">Waitlist / Beta</p>
-              <h2 className="mt-2 font-serif text-2xl text-white">Request early access</h2>
-              <p className="mt-2 text-sm leading-6 text-white/65">
-                Want to test Nova, give feedback, or follow the build? Send a beta request and let Edwin know how you want to reshape your future.
-              </p>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <input
-                  value={waitlistName}
-                  onChange={(event) => setWaitlistName(event.target.value)}
-                  placeholder="Your name"
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25"
-                />
-                <input
-                  type="email"
-                  value={waitlistEmail}
-                  onChange={(event) => setWaitlistEmail(event.target.value)}
-                  placeholder="Your email"
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25"
-                />
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <a href={waitlistHref} className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition-transform hover:-translate-y-0.5">
-                  Join waitlist
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setWaitlistName("");
-                    setWaitlistEmail("");
-                  }}
-                  className="rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/5"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                ["Aspirational, not noisy", "The new landing flow leans on motion, symbolism, and atmosphere instead of stacking too many competing panels."],
-                ["Demo-safe exploration", "Demo mode swaps in a seeded workspace and restores your real data when you leave."],
-              ].map(([title, body]) => (
-                <div key={title} className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/60">{body}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                    <button
+                      onClick={() => void startDemo()}
+                      disabled={isStartingDemo}
+                      className="rounded-full border border-nova-border px-4 py-2 font-medium text-nova-text transition-colors hover:bg-nova-bg disabled:opacity-50"
+                    >
+                      {isStartingDemo ? "Preparing demo…" : "Enter demo"}
+                    </button>
+                    <span className="text-nova-muted">Private by default. Demo restores your real data on exit.</span>
+                  </div>
                 </div>
-              ))}
+
+                <div className="rounded-[26px] bg-black/10 p-5 text-white">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">Join beta</p>
+                  <p className="mt-3 font-serif text-3xl leading-none">Stay close to the build.</p>
+                  <p className="mt-3 text-sm leading-6 text-white/65">
+                    Follow the product, request access, and tell Edwin how you want Nova to support the next version of your life.
+                  </p>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <input
+                      value={waitlistName}
+                      onChange={(event) => setWaitlistName(event.target.value)}
+                      placeholder="Your name"
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25"
+                    />
+                    <input
+                      type="email"
+                      value={waitlistEmail}
+                      onChange={(event) => setWaitlistEmail(event.target.value)}
+                      placeholder="Your email"
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25"
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <a href={waitlistHref} className="rounded-full bg-white px-4 py-2.5 text-sm font-medium text-black transition-transform hover:-translate-y-0.5">
+                      Join waitlist
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWaitlistName("");
+                        setWaitlistEmail("");
+                      }}
+                      className="rounded-full border border-white/10 px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/5"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-[26px] bg-black/10 p-5 text-white/74">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">Why it feels premium</p>
+                  <div className="mt-4 space-y-3 text-sm leading-6">
+                    <p>Full-width visual story, not a cramped login wall.</p>
+                    <p>Sign-reactive mockup and motion-led branding.</p>
+                    <p>Founder-built by Edwin Jaquez under PalmchatInnovations Lab.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
