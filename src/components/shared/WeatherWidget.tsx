@@ -119,7 +119,8 @@ export function WeatherWidget() {
 
   if (state.status === "idle" || state.status === "loading") {
     return (
-      <div className="h-full bg-white border border-nova-border rounded-2xl shadow-card flex items-center justify-center">
+      <div className="relative flex h-full items-center justify-center overflow-hidden rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(14,165,233,0.08),transparent_60%)]" />
         <div className="text-center">
           <p className="text-2xl mb-1">{state.status === "loading" ? "⏳" : "🌍"}</p>
           <p className="text-xs text-nova-muted">
@@ -132,7 +133,8 @@ export function WeatherWidget() {
 
   if (state.status === "denied") {
     return (
-      <div className="h-full bg-white border border-nova-border rounded-2xl shadow-card flex items-center justify-center p-4">
+      <div className="relative flex h-full items-center justify-center overflow-hidden rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(14,165,233,0.08),transparent_60%)]" />
         <div className="text-center">
           <p className="text-2xl mb-1">📍</p>
           <p className="text-xs text-nova-muted mb-2">Location access denied</p>
@@ -149,7 +151,8 @@ export function WeatherWidget() {
 
   if (state.status === "error") {
     return (
-      <div className="h-full bg-white border border-nova-border rounded-2xl shadow-card flex items-center justify-center p-4">
+      <div className="relative flex h-full items-center justify-center overflow-hidden rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(14,165,233,0.08),transparent_60%)]" />
         <div className="text-center">
           <p className="text-2xl mb-1">⚠️</p>
           <p className="text-xs text-nova-muted mb-2">Couldn't load weather</p>
@@ -170,26 +173,41 @@ export function WeatherWidget() {
   const timeLabel = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   return (
-    <div className="h-full bg-white border border-nova-border rounded-2xl shadow-card px-4 py-3 flex flex-col justify-between hover:shadow-md transition-shadow overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50/60 to-transparent pointer-events-none rounded-2xl" />
+    <div className="group relative h-full overflow-hidden rounded-[28px] border border-white/70 bg-white/90 px-5 py-5 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_70px_-32px_rgba(15,23,42,0.45)]">
+      <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(14,165,233,0.12),transparent_62%)]" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-sky-100/70 blur-3xl" />
 
-      <div className="flex items-start justify-between">
+      <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-nova-muted">🌍 Weather</p>
-          <p className="text-sm font-medium text-nova-text mt-0.5 truncate max-w-[120px]">{data.city}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-nova-hint">Weather</p>
+          <p className="mt-1 text-sm font-medium text-nova-text truncate max-w-[140px]">{data.city}</p>
+          <p className="mt-1 text-xs text-nova-muted">Updated {timeLabel}</p>
         </div>
-        <span className="text-3xl leading-none">{info.emoji}</span>
+        <span className="rounded-[20px] bg-white/80 px-3 py-2 text-3xl leading-none shadow-sm">{info.emoji}</span>
       </div>
 
-      <div>
-        <p className="font-serif text-3xl text-nova-text leading-none">{data.temp}°F</p>
-        <p className="text-xs text-nova-muted mt-0.5">{info.label}</p>
+      <div className="relative mt-7">
+        <p className="font-serif text-5xl text-nova-text leading-none">{data.temp}°F</p>
+        <p className="mt-2 text-sm text-nova-muted">{info.label}</p>
       </div>
 
-      <div className="flex justify-between text-xs text-nova-muted">
-        <span>Feels {data.feelsLike}°F</span>
-        <span>💨 {data.windSpeed} mph</span>
-        <button onClick={() => fetchWeather(true)} className="opacity-40 hover:opacity-100 transition-opacity" title="Refresh">↻</button>
+      <div className="relative mt-6 grid grid-cols-3 gap-2 text-xs">
+        <div className="rounded-2xl bg-white/75 px-3 py-2 text-center">
+          <p className="text-nova-hint">Feels</p>
+          <p className="mt-1 font-medium text-nova-text">{data.feelsLike}°F</p>
+        </div>
+        <div className="rounded-2xl bg-white/75 px-3 py-2 text-center">
+          <p className="text-nova-hint">Wind</p>
+          <p className="mt-1 font-medium text-nova-text">{data.windSpeed} mph</p>
+        </div>
+        <button
+          onClick={() => fetchWeather(true)}
+          className="rounded-2xl bg-white/75 px-3 py-2 text-center text-nova-muted transition-colors hover:text-nova-text"
+          title="Refresh"
+        >
+          <p className="text-nova-hint">Refresh</p>
+          <p className="mt-1 font-medium">↻</p>
+        </button>
       </div>
     </div>
   );
