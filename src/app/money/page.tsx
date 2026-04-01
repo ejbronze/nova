@@ -6,10 +6,11 @@ import { useAppStore } from "@/lib/store";
 import { formatCurrency, getDaysUntilDue, getBillDueLabel, TRANSACTION_CATEGORIES, getCategoryEmoji, generateId, todayStr } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, StatCard, Badge, PageHeader, Button, ProgressBar, Toggle, EmptyState } from "@/components/ui";
 import { AddTransactionModal } from "@/components/money/AddTransactionModal";
+import { AccountModal, ACCOUNT_TYPE_META } from "@/components/money/AccountModal";
 import { FXConverter } from "@/components/shared/FXConverter";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Plus, DollarSign, TrendingDown, CreditCard, Wallet } from "lucide-react";
-import type { Bill, DebtCategory } from "@/types";
+import { Plus, DollarSign, TrendingDown, Wallet } from "lucide-react";
+import type { Bill, DebtCategory, Account } from "@/types";
 
 const TABS = ["Overview", "Transactions", "Bills", "Debt", "Accounts"] as const;
 type Tab = typeof TABS[number];
@@ -23,6 +24,7 @@ export default function MoneyPage() {
   const [txFilter, setTxFilter] = useState<"all" | "income" | "expense">("all");
   const [debtView, setDebtView] = useState<"all" | DebtCategory>("all");
   const [debtFading, setDebtFading] = useState(false);
+  const [accountModal, setAccountModal] = useState<{ open: boolean; account?: Account | null }>({ open: false });
   const { settings } = useAppStore();
 
   const cur = settings?.primaryCurrency ?? "USD";
@@ -319,25 +321,59 @@ export default function MoneyPage() {
       })()}
 
       {tab === "Accounts" && (
-        <div className="grid grid-cols-2 gap-4">
-          {(accounts ?? []).map(acc => (
-            <Card key={acc.id} style={{ borderLeft: `4px solid ${acc.color}` }}>
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="font-semibold">{acc.name}</p>
-                  <p className="text-xs text-nova-muted capitalize">{acc.type}</p>
-                </div>
-                <CreditCard size={20} className="text-nova-muted" />
-              </div>
-              <p className="text-2xl font-bold">{formatCurrency(acc.balance, acc.currency)}</p>
-              <p className="text-xs text-nova-muted mt-1">{acc.currency}</p>
-            </Card>
-          ))}
-          {!accounts?.length && <EmptyState emoji="🏦" title="No accounts" subtitle="Add bank accounts to track balances" />}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-nova-muted">{(accounts ?? []).length} account{(accounts ?? []).length !== 1 ? "s" : ""}</p>
+            <Button variant="primary" icon={<Plus size={15} />} onClick={() => setAccountModal({ open: true, account: null })}>
+              Add Account
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {(accounts ?? []).map(acc => {
+              const meta = ACCOUNT_TYPE_META[acc.type] ?? { label: acc.type, emoji: "🏦" };
+              const isNegative = acc.balance < 0;
+              return (
+                <Card key={acc.id} style={{ borderLeft: `4px solid ${acc.color}` }}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{meta.emoji}</span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">{acc.name}</p>
+                        <p className="text-xs text-nova-muted">{meta.label} · {acc.currency}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setAccountModal({ open: true, account: acc })}
+                      className="p-1.5 rounded-lg hover:bg-nova-bg text-nova-muted hover:text-nova-text transition-colors"
+                      title="Edit account"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <p className={`text-2xl font-bold font-serif ${isNegative ? "text-danger" : "text-nova-text"}`}>
+                    {formatCurrency(acc.balance, acc.currency)}
+                  </p>
+                  {acc.notes && <p className="text-xs text-nova-muted mt-2 truncate">{acc.notes}</p>}
+                </Card>
+              );
+            })}
+          </div>
+          {!accounts?.length && (
+            <EmptyState emoji="🏦" title="No accounts yet" subtitle="Add your bank accounts, cards, loans, and investments" />
+          )}
         </div>
       )}
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} />}
+      {accountModal.open && (
+        <AccountModal
+          account={accountModal.account}
+          onClose={() => setAccountModal({ open: false })}
+        />
+      )}
     </div>
   );
 }

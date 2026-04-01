@@ -3,6 +3,7 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/shared/Nav";
 import { ClientInit } from "@/components/shared/ClientInit";
+import { AuthGate } from "@/components/shared/AuthGate";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -25,11 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${dmSans.variable} ${dmSerif.variable} font-sans bg-nova-bg text-nova-text antialiased`}>
-        <ClientInit />
-        <Nav />
-        <main className="max-w-[1200px] mx-auto px-6 py-7">
-          {children}
-        </main>
+        <AuthGate>
+          <ClientInit />
+          <Nav />
+          <main className="max-w-[1200px] mx-auto px-6 py-7">
+            {children}
+          </main>
+        </AuthGate>
       </body>
     </html>
   );

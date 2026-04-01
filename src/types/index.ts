@@ -5,7 +5,18 @@ export type Pillar = "money" | "health" | "life";
 // ─── MONEY ────────────────────────────────────────────────────────────────────
 export type TransactionType = "income" | "expense" | "withdrawal";
 export type PaymentMethod = "cash" | "debit" | "credit" | "transfer" | "other";
-export type AccountType = "checking" | "savings" | "credit" | "cash" | "investment";
+export type AccountType =
+  | "checking"
+  | "savings"
+  | "credit"
+  | "cash"
+  | "investment"
+  | "ira"
+  | "retirement"
+  | "mortgage"
+  | "loan"
+  | "line_of_credit"
+  | "hsa";
 export type BillStatus = "paid" | "unpaid" | "upcoming";
 
 export interface Transaction {
