@@ -175,11 +175,14 @@ export interface GymSession {
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
+import type { ZodiacSign } from "@/lib/themes";
+
 export interface Settings {
   dopRate: number;
   dopRateUpdatedAt: string;
   primaryCurrency: Currency;
   theme: "light" | "dark";
+  zodiacTheme?: ZodiacSign;
 }
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────

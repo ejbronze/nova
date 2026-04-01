@@ -36,7 +36,7 @@ export function Badge({ children, variant = "muted" }: { children: React.ReactNo
 }
 
 const BUTTON_VARIANTS = {
-  primary: "bg-money text-white hover:bg-money/90 shadow-sm",
+  primary: "bg-theme-accent text-theme-accent-text hover:opacity-90 shadow-sm",
   outline: "border border-nova-border text-nova-text hover:bg-nova-bg",
   ghost: "text-nova-text hover:bg-nova-bg",
   danger: "bg-danger text-white hover:bg-danger/90",

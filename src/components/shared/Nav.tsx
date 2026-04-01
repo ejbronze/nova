@@ -22,7 +22,7 @@ export function Nav() {
   const dateLabel = `${dayNames[today.getDay()]}, ${monthNames[today.getMonth()]} ${today.getDate()}`;
 
   return (
-    <nav className="sticky top-0 z-50 flex items-center gap-2 px-6 h-14 bg-white border-b border-nova-border">
+    <nav className="sticky top-0 z-50 flex items-center gap-2 px-6 h-14 bg-theme-nav-bg border-b border-theme-nav-border" style={{ color: "var(--theme-nav-text)" }}>
       <Link href="/" className="flex items-center gap-2 mr-4">
         <Image src="/logo.svg" alt="Nova" width={28} height={28} className="rounded-lg" />
         <span className="font-serif text-xl tracking-tight">Nova<span className="text-money">.</span></span>
@@ -38,8 +38,9 @@ export function Nav() {
             href={item.href}
             className={cn(
               "px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all",
-              isActive ? item.activeClass : "text-nova-muted hover:bg-nova-bg hover:text-nova-text"
+              isActive ? item.activeClass : "hover:bg-black/5"
             )}
+            style={isActive ? undefined : { color: "var(--theme-nav-text)", opacity: 0.7 }}
           >
             {item.label}
           </Link>
@@ -47,19 +48,20 @@ export function Nav() {
       })}
 
       <div className="flex-1" />
-      <span className="text-xs text-nova-hint mr-3">{dateLabel}</span>
+      <span className="text-xs mr-3" style={{ color: "var(--theme-nav-text)", opacity: 0.5 }}>{dateLabel}</span>
       <Link
         href="/settings"
-        className={cn(
-          "px-3 py-1.5 rounded-full text-[13px] font-medium transition-all",
-          pathname === "/settings" ? "bg-nova-text text-white" : "text-nova-muted hover:bg-nova-bg hover:text-nova-text"
+        className={cn("px-3 py-1.5 rounded-full text-[13px] font-medium transition-all",
+          pathname === "/settings" ? "bg-theme-accent text-theme-accent-text" : "hover:bg-black/5"
         )}
+        style={pathname === "/settings" ? undefined : { color: "var(--theme-nav-text)", opacity: 0.7 }}
       >
         ⚙️
       </Link>
       <button
         onClick={signOut}
-        className="ml-1 px-3 py-1.5 rounded-full text-[13px] font-medium text-nova-muted hover:bg-nova-bg hover:text-nova-text transition-all"
+        className="ml-1 px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-black/5 transition-all"
+        style={{ color: "var(--theme-nav-text)", opacity: 0.6 }}
         title="Sign out"
       >
         ↩

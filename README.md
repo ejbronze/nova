@@ -8,6 +8,8 @@
 
 Nova replaces the scattered spreadsheets, note apps, and habit trackers with a single, fast, beautifully designed dashboard. It's built for real life — with dual-currency support (USD + DOP), medication tracking, gym logging, debt payoff, and a task system that doesn't get in your way.
 
+The latest pass adds a zodiac-powered personalization layer, a more dynamic home dashboard, and a weather snapshot so the app feels more like a living personal cockpit than a static tracker.
+
 ---
 
 ## Features
@@ -40,8 +42,15 @@ Nova replaces the scattered spreadsheets, note apps, and habit trackers with a s
 ### ⚙️ Settings
 - Switch primary currency (USD / DOP)
 - Update exchange rate manually
+- Pick a zodiac sign theme that customizes nav colors, accent styling, and dashboard layout emphasis
 - Full JSON export / import backup
 - One-click data reset
+
+### ✨ Personalization
+- 12 zodiac theme presets with custom palette tokens and sign metadata
+- Theme-aware navigation, buttons, and settings states powered by CSS variables
+- Dashboard bento layout shifts based on the active sign's energy: balanced, money-forward, or health-forward
+- Weather widget on the home screen for a quick local conditions snapshot
 
 ---
 
@@ -70,6 +79,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 The app seeds realistic sample data on first load. All data lives in your browser's IndexedDB — no backend, no accounts, nothing sent anywhere.
+
+If Google Fonts are unavailable in your network environment, local development still works, but a production `next build` may fail until those font assets can be fetched.
 
 ---
 

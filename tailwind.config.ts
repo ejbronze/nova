@@ -13,6 +13,13 @@ const config: Config = {
         sans: ["DM Sans", "system-ui", "sans-serif"],
       },
       colors: {
+        // Runtime theme tokens — values injected via CSS variables by ThemeProvider
+        "theme-nav-bg":     "var(--theme-nav-bg, #FFFFFF)",
+        "theme-nav-text":   "var(--theme-nav-text, #1A1A1A)",
+        "theme-nav-border": "var(--theme-nav-border, #EBEBEB)",
+        "theme-accent":     "var(--theme-accent, #4F7CFF)",
+        "theme-accent-text":"var(--theme-accent-text, #FFFFFF)",
+        "theme-accent-light":"var(--theme-accent-light, #EEF2FF)",
         nova: {
           bg: "#FAFAF8",
           card: "#FFFFFF",

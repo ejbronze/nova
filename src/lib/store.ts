@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Settings } from "@/types";
+import type { ZodiacSign } from "@/lib/themes";
 import { getSettings, updateSettings } from "@/lib/db";
 
 interface AppState {
@@ -12,6 +13,7 @@ interface AppState {
   loadSettings: () => Promise<void>;
   setDopRate: (rate: number) => Promise<void>;
   setPrimaryCurrency: (currency: "USD" | "DOP") => Promise<void>;
+  setZodiacTheme: (sign: ZodiacSign | undefined) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -40,5 +42,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPrimaryCurrency: async (currency) => {
     await updateSettings({ primaryCurrency: currency });
     set((s) => ({ settings: { ...s.settings, primaryCurrency: currency } }));
+  },
+
+  setZodiacTheme: async (sign) => {
+    await updateSettings({ zodiacTheme: sign });
+    set((s) => ({ settings: { ...s.settings, zodiacTheme: sign } }));
   },
 }));
