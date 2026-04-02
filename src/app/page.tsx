@@ -2,10 +2,18 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { useAppStore } from "@/lib/store";
-import { formatCurrency, todayStr, getGreeting, getDaysUntilDue, getBillDueLabel, getCategoryEmoji } from "@/lib/utils";
+import { formatCurrency, todayStr, getGreeting, getDaysUntilDue, getBillDueLabel, getCategoryEmoji, getMedicationEntries, getMedicationTakenCount } from "@/lib/utils";
 import Link from "next/link";
 
 const MOOD_EMOJI = ["", "😞", "😕", "😐", "🙂", "😊"];
+
+function formatSleep(value?: number) {
+  if (value == null || Number.isNaN(value)) return "Not logged";
+  const totalMinutes = Math.round(value * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+}
 
 export default function HomePage() {
   const { settings } = useAppStore();
@@ -44,6 +52,8 @@ export default function HomePage() {
   const dateLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric",
   });
+  const medications = getMedicationEntries(todayLog);
+  const medsTakenCount = getMedicationTakenCount(todayLog);
 
   return (
     <div className="animate-fadeIn select-none">
@@ -104,7 +114,7 @@ export default function HomePage() {
               </div>
               <p className="font-serif text-3xl text-nova-text leading-none">
                 {todayLog
-                  ? (todayLog.hivMed && todayLog.adderall ? "On track" : "Check in")
+                  ? (medsTakenCount > 0 ? "On track" : "Check in")
                   : "Not logged"}
               </p>
               <p className="text-xs text-nova-muted mt-1">Today's status</p>
@@ -119,24 +129,25 @@ export default function HomePage() {
               {todayLog?.sleep != null && (
                 <div className="flex justify-between text-xs">
                   <span className="text-nova-muted">Sleep</span>
-                  <span className="font-medium">{todayLog.sleep}h</span>
+                  <span className="font-medium">{formatSleep(todayLog.sleep)}</span>
                 </div>
               )}
               <div className="flex gap-2 pt-1">
-                {[
-                  { key: "hivMed", label: "HIV Med" },
-                  { key: "adderall", label: "Adderall" },
-                  { key: "weed", label: "Cannabis" },
-                ].map(m => (
-                  <span key={m.key}
+                {medications.slice(0, 3).map((medication) => (
+                  <span
+                    key={medication.id}
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      todayLog?.[m.key as "hivMed" | "adderall" | "weed"]
-                        ? "bg-health/15 text-health"
-                        : "bg-nova-bg text-nova-muted"
-                    }`}>
-                    {m.label}
+                      medication.taken ? "bg-health/15 text-health" : "bg-nova-bg text-nova-muted"
+                    }`}
+                  >
+                    {medication.name || "Medication"}
                   </span>
                 ))}
+                {medications.length === 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-nova-bg text-nova-muted">
+                    Add medications
+                  </span>
+                )}
               </div>
             </div>
           </div>

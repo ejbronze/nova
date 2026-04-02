@@ -66,6 +66,7 @@ export async function getSettings(): Promise<Settings> {
     dopRateUpdatedAt: new Date().toISOString(),
     primaryCurrency: "USD",
     theme: "light",
+    zodiacSign: undefined,
   };
   await db.settings.put({ id: 1, ...defaults });
   return defaults;
@@ -140,6 +141,10 @@ export async function seedIfEmpty(): Promise<void> {
     healthLogs.push({
       id: `hl-${i}`,
       date: dateStr,
+      medications: [
+        { id: `med-daily-${i}`, name: "Daily medication", taken: !isMissed, time: !isMissed ? "08:30" : undefined },
+        { id: `med-focus-${i}`, name: "Focus support", taken: adderallTaken && !isMissed, time: adderallTaken && !isMissed ? "09:00" : undefined },
+      ],
       hivMed: !isMissed,
       hivMedTime: !isMissed ? "08:30" : undefined,
       adderall: adderallTaken && !isMissed,
@@ -243,4 +248,3 @@ export async function importAllData(json: string): Promise<void> {
     if (data.contacts) { await db.contacts.clear(); await db.contacts.bulkAdd(data.contacts); }
   });
 }
-

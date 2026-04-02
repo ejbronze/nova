@@ -12,6 +12,7 @@ interface AppState {
   loadSettings: () => Promise<void>;
   setDopRate: (rate: number) => Promise<void>;
   setPrimaryCurrency: (currency: "USD" | "DOP") => Promise<void>;
+  setZodiacSign: (sign: Settings["zodiacSign"]) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -20,6 +21,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     dopRateUpdatedAt: new Date().toISOString(),
     primaryCurrency: "USD",
     theme: "light",
+    zodiacSign: undefined,
   },
   isLoading: true,
   openModal: null,
@@ -40,5 +42,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPrimaryCurrency: async (currency) => {
     await updateSettings({ primaryCurrency: currency });
     set((s) => ({ settings: { ...s.settings, primaryCurrency: currency } }));
+  },
+
+  setZodiacSign: async (sign) => {
+    await updateSettings({ zodiacSign: sign });
+    set((s) => ({ settings: { ...s.settings, zodiacSign: sign } }));
   },
 }));

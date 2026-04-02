@@ -3,11 +3,21 @@ import { useState } from "react";
 import { db, exportAllData, importAllData } from "@/lib/db";
 import { useAppStore } from "@/lib/store";
 import { downloadJSON } from "@/lib/utils";
+import type { ZodiacSign } from "@/types";
 import { Card, CardHeader, CardTitle, PageHeader, Button } from "@/components/ui";
 import { Download, Upload, RefreshCw, AlertTriangle } from "lucide-react";
 
+const ZODIAC_SIGNS: ZodiacSign[] = [
+  "aries", "taurus", "gemini", "cancer", "leo", "virgo",
+  "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces",
+];
+
+function formatSign(sign: ZodiacSign) {
+  return sign.charAt(0).toUpperCase() + sign.slice(1);
+}
+
 export default function SettingsPage() {
-  const { settings, setDopRate, setPrimaryCurrency } = useAppStore();
+  const { settings, setDopRate, setPrimaryCurrency, setZodiacSign } = useAppStore();
   const [rateInput, setRateInput] = useState(String(settings?.dopRate ?? 59.5));
   const [saved, setSaved] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -92,6 +102,30 @@ export default function SettingsPage() {
                   Last updated: {new Date(settings.dopRateUpdatedAt).toLocaleDateString()}
                 </p>
               )}
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Zodiac</CardTitle></CardHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-nova-muted">
+              Choose the sign you want Nova to reflect in rewards, prompts, and ritual energy.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {ZODIAC_SIGNS.map((sign) => (
+                <button
+                  key={sign}
+                  onClick={() => void setZodiacSign(sign)}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
+                    settings?.zodiacSign === sign
+                      ? "border-life bg-life/10 text-life"
+                      : "border-nova-border text-nova-muted hover:border-life/50 hover:text-nova-text"
+                  }`}
+                >
+                  {formatSign(sign)}
+                </button>
+              ))}
             </div>
           </div>
         </Card>

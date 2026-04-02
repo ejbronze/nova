@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import { todayStr, calculateStreak, generateId } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
+import { todayStr, calculateStreak, generateId, getMedicationEntries, getMedicationTakenCount, getZodiacReward } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, PageHeader, Badge, Button, EmptyState } from "@/components/ui";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import type { HealthLog, MoodLevel, GymSession, CardioType } from "@/types";
+import type { HealthLog, MoodLevel, GymSession, CardioType, MedicationEntry } from "@/types";
 
 const TABS = ["Today", "Calendar", "Streaks", "Gym", "Notes"] as const;
 type Tab = typeof TABS[number];
@@ -17,6 +18,24 @@ const CARDIO_OPTIONS: [CardioType, string][] = [
   ["run", "🏃 Run"], ["bike", "🚴 Bike"], ["elliptical", "⚙️ Elliptical"],
   ["swim", "🏊 Swim"], ["rowing", "🚣 Rowing"], ["other", "🏋️ Other"],
 ];
+
+function formatSleepDuration(value?: number) {
+  if (value == null || Number.isNaN(value)) return "Not logged";
+  const totalMinutes = Math.round(value * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+}
+
+function calculateZodiacPoints(log: HealthLog | undefined, gymCount: number) {
+  const medsTaken = getMedicationTakenCount(log);
+  let total = medsTaken * 12;
+  if (log?.mood) total += 8;
+  if ((log?.sleep ?? 0) >= 7) total += 10;
+  if (log?.notes?.trim()) total += 4;
+  if (gymCount > 0) total += 12;
+  return total;
+}
 
 function GymSessionModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
@@ -148,6 +167,7 @@ function GymSessionModal({ onClose }: { onClose: () => void }) {
 const MOOD_LABELS: Record<number, string> = { 1: "😞 Low", 2: "😕 Meh", 3: "😐 Okay", 4: "🙂 Good", 5: "😊 Great" };
 
 function TodayLog() {
+  const { settings } = useAppStore();
   const today = todayStr();
   const log = useLiveQuery(() => db.healthLogs.get({ date: today }), [today]);
   const todayGymSessions = useLiveQuery(() => db.gymSessions.where("date").equals(today).toArray(), [today]);
@@ -164,9 +184,7 @@ function TodayLog() {
       await db.healthLogs.add({
         id: generateId(),
         date: today,
-        hivMed: false,
-        adderall: false,
-        weed: false,
+        medications: [],
         createdAt: now,
         updatedAt: now,
         ...patch,
@@ -174,20 +192,53 @@ function TodayLog() {
     }
     setSaving(false);
   };
+  const medications = getMedicationEntries(log);
+  const zodiacReward = getZodiacReward(settings?.zodiacSign);
+  const zodiacPoints = calculateZodiacPoints(log, (todayGymSessions ?? []).length);
+  const sleepHours = log?.sleep != null ? Math.floor(log.sleep) : "";
+  const sleepMinutes = log?.sleep != null ? Math.round((log.sleep - Math.floor(log.sleep)) * 60) : "";
 
-  const toggle = (field: "hivMed" | "adderall" | "weed") => {
-    const newVal = !(log?.[field] ?? false);
-    const timeField = field === "hivMed" ? "hivMedTime" : field === "adderall" ? "adderallTime" : null;
-    const patch: Partial<HealthLog> = { [field]: newVal };
-    if (timeField) patch[timeField] = newVal ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : undefined;
-    update(patch);
+  const saveMedications = async (nextMedications: MedicationEntry[]) => {
+    await update({
+      medications: nextMedications,
+      hivMed: undefined,
+      hivMedTime: undefined,
+      adderall: undefined,
+      adderallTime: undefined,
+      weed: undefined,
+      weedNotes: undefined,
+    });
   };
 
-  const meds = [
-    { key: "hivMed" as const, label: "HIV Medication", emoji: "💊", timeKey: "hivMedTime" as const, color: "text-health" },
-    { key: "adderall" as const, label: "Adderall", emoji: "🧠", timeKey: "adderallTime" as const, color: "text-money" },
-    { key: "weed" as const, label: "Cannabis", emoji: "🌿", timeKey: null, color: "text-life" },
-  ];
+  const updateMedication = (medId: string, patch: Partial<MedicationEntry>) => {
+    const nextMedications = medications.map((med) => (med.id === medId ? { ...med, ...patch } : med));
+    void saveMedications(nextMedications);
+  };
+
+  const addMedication = () => {
+    const nextMedications = [
+      ...medications,
+      { id: generateId("med"), name: "", taken: false, time: "", notes: "" },
+    ];
+    void saveMedications(nextMedications);
+  };
+
+  const removeMedication = (medId: string) => {
+    void saveMedications(medications.filter((med) => med.id !== medId));
+  };
+
+  const updateSleepPart = (part: "hours" | "minutes", rawValue: string) => {
+    const currentHours = typeof sleepHours === "number" ? sleepHours : parseInt(String(sleepHours || "0"), 10) || 0;
+    const currentMinutes = typeof sleepMinutes === "number" ? sleepMinutes : parseInt(String(sleepMinutes || "0"), 10) || 0;
+    const nextHours = part === "hours" ? Math.max(0, parseInt(rawValue || "0", 10) || 0) : currentHours;
+    const nextMinutesBase = part === "minutes" ? parseInt(rawValue || "0", 10) || 0 : currentMinutes;
+    const nextMinutes = Math.min(59, Math.max(0, nextMinutesBase));
+    if (!rawValue && part === "hours" && !nextMinutes) {
+      void update({ sleep: undefined });
+      return;
+    }
+    void update({ sleep: nextHours + nextMinutes / 60 });
+  };
 
   return (
     <>
@@ -198,29 +249,82 @@ function TodayLog() {
           {saving && <span className="text-xs text-nova-muted">Saving…</span>}
         </CardHeader>
         <div className="space-y-4">
-          {meds.map(med => (
-            <div key={med.key} className={`flex items-center justify-between p-3 rounded-xl transition-all ${log?.[med.key] ? "bg-nova-bg" : "bg-white"}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{med.emoji}</span>
-                <div>
-                  <p className="font-medium text-sm">{med.label}</p>
-                  {med.timeKey && log?.[med.timeKey] && (
-                    <p className="text-xs text-nova-muted">Logged at {log[med.timeKey]}</p>
-                  )}
+          {medications.length === 0 && (
+            <div className="rounded-xl border border-dashed border-nova-border bg-nova-bg px-4 py-5 text-sm text-nova-muted">
+              No medications added yet. Add the medications you actually want to track.
+            </div>
+          )}
+          {medications.map((medication) => (
+            <div key={medication.id} className="rounded-xl border border-nova-border bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="text"
+                    value={medication.name}
+                    onChange={(e) => updateMedication(medication.id, { name: e.target.value })}
+                    placeholder="Medication name"
+                    className="w-full rounded-lg border border-nova-border px-3 py-2 text-sm outline-none focus:border-health"
+                  />
+                  <div className="grid grid-cols-[150px_1fr] gap-3">
+                    <input
+                      type="time"
+                      value={medication.time ?? ""}
+                      onChange={(e) => updateMedication(medication.id, { time: e.target.value })}
+                      className="rounded-lg border border-nova-border px-3 py-2 text-sm outline-none focus:border-health"
+                    />
+                    <input
+                      type="text"
+                      value={medication.notes ?? ""}
+                      onChange={(e) => updateMedication(medication.id, { notes: e.target.value })}
+                      placeholder="Notes or dosage"
+                      className="rounded-lg border border-nova-border px-3 py-2 text-sm outline-none focus:border-health"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <button
+                    onClick={() => updateMedication(medication.id, { taken: !medication.taken })}
+                    className={`w-12 h-6 rounded-full transition-all relative ${medication.taken ? "bg-health" : "bg-nova-border"}`}
+                    aria-label={`Mark ${medication.name || "medication"} as taken`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${medication.taken ? "left-6" : "left-0.5"}`} />
+                  </button>
+                  <button
+                    onClick={() => removeMedication(medication.id)}
+                    className="text-xs font-medium text-danger hover:underline"
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => toggle(med.key)}
-                className={`w-12 h-6 rounded-full transition-all relative ${log?.[med.key] ? "bg-health" : "bg-nova-border"}`}
-              >
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${log?.[med.key] ? "left-6" : "left-0.5"}`} />
-              </button>
             </div>
           ))}
+          <button
+            onClick={addMedication}
+            className="w-full rounded-xl border border-dashed border-health/40 bg-health/5 px-4 py-3 text-sm font-medium text-health transition-colors hover:bg-health/10"
+          >
+            + Add medication
+          </button>
         </div>
       </Card>
 
       <div className="space-y-4">
+        <Card>
+          <CardHeader><CardTitle>{zodiacReward.badge} Points</CardTitle></CardHeader>
+          <div className="rounded-2xl bg-[linear-gradient(135deg,rgba(111,114,255,0.08),rgba(255,255,255,0.9))] p-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-nova-muted">{zodiacReward.pointsName} earned today</p>
+                <p className="mt-1 font-serif text-4xl text-nova-text">{zodiacPoints}</p>
+              </div>
+              <div className="rounded-full bg-life/10 px-3 py-1 text-xs font-medium text-life">
+                {(settings?.zodiacSign ?? "nova").toUpperCase()}
+              </div>
+            </div>
+            <p className="mt-3 text-sm text-nova-muted">{zodiacReward.ritual}</p>
+          </div>
+        </Card>
+
         <Card>
           <CardHeader><CardTitle>Mood</CardTitle></CardHeader>
           <div className="flex gap-2 flex-wrap">
@@ -242,17 +346,24 @@ function TodayLog() {
           <div className="flex items-center gap-3">
             <input
               type="number"
-              min={0} max={24} step={0.5}
-              value={log?.sleep ?? ""}
-              onChange={e => {
-                const raw = parseFloat(e.target.value);
-                update({ sleep: isNaN(raw) ? undefined : Math.round(raw * 10) / 10 });
-              }}
+              min={0} max={24}
+              value={sleepHours}
+              onChange={e => updateSleepPart("hours", e.target.value)}
               placeholder="Hours"
               className="w-24 px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
             />
-            <span className="text-sm text-nova-muted">hours last night</span>
+            <span className="text-sm text-nova-muted">hours</span>
+            <input
+              type="number"
+              min={0} max={59}
+              value={sleepMinutes}
+              onChange={e => updateSleepPart("minutes", e.target.value)}
+              placeholder="Minutes"
+              className="w-24 px-3 py-2 rounded-lg border border-nova-border text-sm outline-none focus:border-health"
+            />
+            <span className="text-sm text-nova-muted">minutes</span>
           </div>
+          <p className="mt-2 text-xs text-nova-muted">Current sleep: {formatSleepDuration(log?.sleep)}</p>
         </Card>
 
         <Card>
@@ -336,9 +447,12 @@ function HealthCalendar() {
 
   const getColor = (log?: HealthLog) => {
     if (!log) return "bg-nova-bg";
-    if (log.hivMed && log.adderall) return "bg-health text-white";
-    if (log.hivMed || log.adderall) return "bg-life/60";
-    return "bg-danger/30";
+    const takenCount = getMedicationTakenCount(log);
+    const totalCount = getMedicationEntries(log).length;
+    if (takenCount > 0 && takenCount === totalCount) return "bg-health text-white";
+    if (takenCount > 0) return "bg-life/60";
+    if (log.mood || log.notes || log.sleep != null) return "bg-danger/30";
+    return "bg-nova-bg";
   };
 
   return (
@@ -371,10 +485,13 @@ function HealthCalendar() {
 }
 
 function Streaks() {
+  const { settings } = useAppStore();
   const allLogs = useLiveQuery(() => db.healthLogs.orderBy("date").toArray(), []);
   const dates = (allLogs ?? []).map(l => l.date);
-  const hivDates = (allLogs ?? []).filter(l => l.hivMed).map(l => l.date);
-  const adderallDates = (allLogs ?? []).filter(l => l.adderall).map(l => l.date);
+  const medicationDates = (allLogs ?? []).filter(l => getMedicationTakenCount(l) > 0).map(l => l.date);
+  const fullRitualDates = (allLogs ?? []).filter(l => getMedicationTakenCount(l) > 0 && (l.sleep ?? 0) >= 7 && Boolean(l.mood)).map(l => l.date);
+  const zodiacReward = getZodiacReward(settings?.zodiacSign);
+  const weeklyPoints = (allLogs ?? []).slice(-7).reduce((sum, entry) => sum + calculateZodiacPoints(entry, 0), 0);
 
   const moodData = (allLogs ?? []).slice(-30).map(l => ({
     date: l.date.slice(5),
@@ -386,8 +503,8 @@ function Streaks() {
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "HIV Meds Streak", dates: hivDates, emoji: "💊" },
-          { label: "Adderall Streak", dates: adderallDates, emoji: "🧠" },
+          { label: "Medication Streak", dates: medicationDates, emoji: "💊" },
+          { label: "Full Ritual Streak", dates: fullRitualDates, emoji: "🏆" },
           { label: "Logging Streak", dates, emoji: "📝" },
         ].map(s => {
           const streak = calculateStreak(s.dates);
@@ -401,6 +518,18 @@ function Streaks() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>{zodiacReward.badge} Progress</CardTitle></CardHeader>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm text-nova-muted">Last 7 days</p>
+            <p className="mt-1 font-serif text-4xl text-nova-text">{weeklyPoints}</p>
+          </div>
+          <Badge>{zodiacReward.pointsName} points</Badge>
+        </div>
+        <p className="mt-3 text-sm text-nova-muted">{zodiacReward.ritual}</p>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Mood over time</CardTitle></CardHeader>

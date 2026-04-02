@@ -1,6 +1,19 @@
 // ─── SHARED ───────────────────────────────────────────────────────────────────
 export type Currency = "USD" | "DOP";
 export type Pillar = "money" | "health" | "life";
+export type ZodiacSign =
+  | "aries"
+  | "taurus"
+  | "gemini"
+  | "cancer"
+  | "leo"
+  | "virgo"
+  | "libra"
+  | "scorpio"
+  | "sagittarius"
+  | "capricorn"
+  | "aquarius"
+  | "pisces";
 
 // ─── MONEY ────────────────────────────────────────────────────────────────────
 export type TransactionType = "income" | "expense" | "withdrawal";
@@ -81,14 +94,23 @@ export interface Account {
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 export type MoodLevel = 1 | 2 | 3 | 4 | 5;
 
+export interface MedicationEntry {
+  id: string;
+  name: string;
+  taken: boolean;
+  time?: string;
+  notes?: string;
+}
+
 export interface HealthLog {
   id: string;
   date: string; // YYYY-MM-DD — one per day
-  hivMed: boolean;
+  medications?: MedicationEntry[];
+  hivMed?: boolean;
   hivMedTime?: string;
-  adderall: boolean;
+  adderall?: boolean;
   adderallTime?: string;
-  weed: boolean;
+  weed?: boolean;
   weedNotes?: string;
   mood?: MoodLevel;
   sleep?: number; // hours
@@ -180,6 +202,7 @@ export interface Settings {
   dopRateUpdatedAt: string;
   primaryCurrency: Currency;
   theme: "light" | "dark";
+  zodiacSign?: ZodiacSign;
 }
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────

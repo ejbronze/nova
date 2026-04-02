@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow, isToday, isTomorrow, isPast, parseISO } from "date-fns";
-import type { Currency } from "@/types";
+import type { Currency, HealthLog, MedicationEntry, ZodiacSign } from "@/types";
 
 // ─── CLASSNAMES ────────────────────────────────────────────────────────────────
 export function cn(...inputs: ClassValue[]) {
@@ -138,6 +138,67 @@ export function calculateStreak(
     }
   }
   return streak;
+}
+
+// ─── HEALTH HELPERS ──────────────────────────────────────────────────────────
+export function getMedicationEntries(log?: HealthLog | null): MedicationEntry[] {
+  if (!log) return [];
+  if (Array.isArray(log.medications) && log.medications.length > 0) {
+    return log.medications;
+  }
+
+  const legacy: MedicationEntry[] = [];
+  if (log.hivMed || log.hivMedTime) {
+    legacy.push({
+      id: "legacy-hiv",
+      name: "Medication 1",
+      taken: Boolean(log.hivMed),
+      time: log.hivMedTime,
+    });
+  }
+  if (log.adderall || log.adderallTime) {
+    legacy.push({
+      id: "legacy-adderall",
+      name: "Medication 2",
+      taken: Boolean(log.adderall),
+      time: log.adderallTime,
+    });
+  }
+  if (log.weed || log.weedNotes) {
+    legacy.push({
+      id: "legacy-weed",
+      name: "Cannabis",
+      taken: Boolean(log.weed),
+      notes: log.weedNotes,
+    });
+  }
+  return legacy;
+}
+
+export function getMedicationTakenCount(log?: HealthLog | null): number {
+  return getMedicationEntries(log).filter((med) => med.taken).length;
+}
+
+const ZODIAC_REWARDS: Record<ZodiacSign, { pointsName: string; badge: string; ritual: string }> = {
+  aries: { pointsName: "Momentum", badge: "Trailblazer", ritual: "Action sparks alignment." },
+  taurus: { pointsName: "Harmony", badge: "Grounded", ritual: "Consistency builds abundance." },
+  gemini: { pointsName: "Spark", badge: "Dual Vision", ritual: "Clarity grows through motion." },
+  cancer: { pointsName: "Moon", badge: "Caretaker", ritual: "Care is a kind of power." },
+  leo: { pointsName: "Radiance", badge: "Solar", ritual: "Small wins deserve to glow." },
+  virgo: { pointsName: "Order", badge: "Refiner", ritual: "Tiny systems create real change." },
+  libra: { pointsName: "Balance", badge: "Harmonizer", ritual: "Beauty and discipline can coexist." },
+  scorpio: { pointsName: "Depth", badge: "Transformer", ritual: "Private rituals build visible strength." },
+  sagittarius: { pointsName: "Horizon", badge: "Explorer", ritual: "Freedom loves a strong routine." },
+  capricorn: { pointsName: "Summit", badge: "Builder", ritual: "Steady effort compounds." },
+  aquarius: { pointsName: "Signal", badge: "Visionary", ritual: "Your future gets clearer with structure." },
+  pisces: { pointsName: "Tide", badge: "Dreamkeeper", ritual: "Gentle rituals still count." },
+};
+
+export function getZodiacReward(sign?: ZodiacSign) {
+  if (!sign) {
+    return { pointsName: "Nova", badge: "Daily Ritual", ritual: "Small steps shape the future." };
+  }
+  return ZODIAC_REWARDS[sign];
 }
 
 // ─── EXPORT HELPERS ───────────────────────────────────────────────────────────
