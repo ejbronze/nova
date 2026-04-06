@@ -12,6 +12,7 @@ const navItems = [
   { href: "/money", label: "💰 Money", activeClass: "bg-money text-white" },
   { href: "/health", label: "🌿 Health", activeClass: "bg-health text-white" },
   { href: "/life", label: "🗂 Life", activeClass: "bg-life text-white" },
+  { href: "/calendar", label: "📅 Calendar", activeClass: "bg-[#4067ff] text-white" },
 ];
 
 export function Nav() {

@@ -13,6 +13,7 @@ interface AppState {
   setDopRate: (rate: number) => Promise<void>;
   setPrimaryCurrency: (currency: "USD" | "DOP") => Promise<void>;
   setZodiacSign: (sign: Settings["zodiacSign"]) => Promise<void>;
+  patchSettings: (patch: Partial<Settings>) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -47,5 +48,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setZodiacSign: async (sign) => {
     await updateSettings({ zodiacSign: sign });
     set((s) => ({ settings: { ...s.settings, zodiacSign: sign } }));
+  },
+
+  patchSettings: async (patch) => {
+    await updateSettings(patch);
+    set((s) => ({ settings: { ...s.settings, ...patch } }));
   },
 }));

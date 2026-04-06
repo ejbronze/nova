@@ -138,6 +138,31 @@ export interface Task {
   createdAt: string;
 }
 
+export type CalendarEventSyncStatus =
+  | "local_only"
+  | "pending_push"
+  | "synced"
+  | "pending_delete"
+  | "error";
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  start: string; // ISO
+  end: string; // ISO
+  allDay: boolean;
+  source: "local" | "google";
+  googleEventId?: string;
+  googleCalendarId?: string;
+  lastSyncedAt?: string;
+  syncStatus: CalendarEventSyncStatus;
+  syncError?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -203,6 +228,11 @@ export interface Settings {
   primaryCurrency: Currency;
   theme: "light" | "dark";
   zodiacSign?: ZodiacSign;
+  googleCalendarConnected?: boolean;
+  googleCalendarEmail?: string;
+  googleCalendarCalendarId?: string;
+  googleCalendarCalendarName?: string;
+  googleCalendarLastSyncAt?: string;
 }
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────

@@ -36,12 +36,14 @@ Nova replaces the scattered spreadsheets, note apps, and habit trackers with a s
 - House manual (appliances, utilities, rules)
 - Key contacts
 - Pinnable notes
+- Local calendar workspace with optional two-way Google Calendar sync
 
 ### ⚙️ Settings
 - Switch primary currency (USD / DOP)
 - Update exchange rate manually
 - Full JSON export / import backup
 - One-click data reset
+- Google Calendar OAuth connection and sync controls
 
 ---
 
@@ -64,12 +66,21 @@ Nova replaces the scattered spreadsheets, note apps, and habit trackers with a s
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The app seeds realistic sample data on first load. All data lives in your browser's IndexedDB — no backend, no accounts, nothing sent anywhere.
+The app seeds realistic sample data on first load. Most data lives in your browser's IndexedDB. If you enable Google Calendar sync, calendar events will sync with your Google account.
+
+For Google Calendar sync, add these env vars to `.env.local`:
+
+```bash
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/google-calendar/callback
+```
 
 ---
 
@@ -85,7 +96,7 @@ npm run build   # local build check
 
 ## Data & Privacy
 
-Nova is 100% local-first. There is no server, no analytics, no user accounts. Use **Settings → Export** to back up your data as JSON, and **Import** to restore it on any device.
+Nova is local-first by default. There is no app backend database, no analytics, and no user accounts. Use **Settings → Export** to back up your data as JSON, and **Import** to restore it on any device. If you connect Google Calendar, synced event data will flow between Nova and Google Calendar.
 
 ---
 

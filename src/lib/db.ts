@@ -13,6 +13,7 @@ import type {
   Contact,
   Settings,
   GymSession,
+  CalendarEvent,
 } from "@/types";
 
 export class NovaDatabase extends Dexie {
@@ -28,6 +29,7 @@ export class NovaDatabase extends Dexie {
   contacts!: Table<Contact>;
   settings!: Table<Settings & { id: number }>;
   gymSessions!: Table<GymSession>;
+  calendarEvents!: Table<CalendarEvent>;
 
   constructor() {
     super("NovaDB");
@@ -49,6 +51,22 @@ export class NovaDatabase extends Dexie {
     this.version(2).stores({
       gymSessions: "id, date, isCardio, createdAt",
     });
+
+    this.version(3).stores({
+      transactions: "id, date, type, category, accountId, currency, createdAt",
+      bills: "id, dueDay, status, category, accountId, createdAt",
+      debts: "id, currency, createdAt",
+      accounts: "id, type, currency, createdAt",
+      healthLogs: "id, date, createdAt",
+      tasks: "id, category, dueDate, completed, priority, createdAt",
+      notes: "id, category, isPinned, createdAt, updatedAt",
+      quickLinks: "id, category, sortOrder",
+      houseEntries: "id, category, createdAt",
+      contacts: "id, category, createdAt",
+      settings: "id",
+      gymSessions: "id, date, isCardio, createdAt",
+      calendarEvents: "id, start, end, allDay, source, googleEventId, googleCalendarId, syncStatus, updatedAt",
+    });
   }
 }
 
@@ -67,6 +85,7 @@ export async function getSettings(): Promise<Settings> {
     primaryCurrency: "USD",
     theme: "light",
     zodiacSign: undefined,
+    googleCalendarConnected: false,
   };
   await db.settings.put({ id: 1, ...defaults });
   return defaults;
@@ -212,7 +231,7 @@ export async function seedIfEmpty(): Promise<void> {
 export async function exportAllData(): Promise<string> {
   const [
     transactions, bills, debts, accounts, healthLogs,
-    tasks, notes, quickLinks, houseEntries, contacts,
+    tasks, notes, quickLinks, houseEntries, contacts, calendarEvents,
   ] = await Promise.all([
     db.transactions.toArray(),
     db.bills.toArray(),
@@ -224,10 +243,11 @@ export async function exportAllData(): Promise<string> {
     db.quickLinks.toArray(),
     db.houseEntries.toArray(),
     db.contacts.toArray(),
+    db.calendarEvents.toArray(),
   ]);
 
   return JSON.stringify(
-    { transactions, bills, debts, accounts, healthLogs, tasks, notes, quickLinks, houseEntries, contacts, exportedAt: new Date().toISOString() },
+    { transactions, bills, debts, accounts, healthLogs, tasks, notes, quickLinks, houseEntries, contacts, calendarEvents, exportedAt: new Date().toISOString() },
     null,
     2
   );
@@ -235,7 +255,7 @@ export async function exportAllData(): Promise<string> {
 
 export async function importAllData(json: string): Promise<void> {
   const data = JSON.parse(json);
-  await db.transaction("rw", [db.transactions, db.bills, db.debts, db.accounts, db.healthLogs, db.tasks, db.notes, db.quickLinks, db.houseEntries, db.contacts], async () => {
+  await db.transaction("rw", [db.transactions, db.bills, db.debts, db.accounts, db.healthLogs, db.tasks, db.notes, db.quickLinks, db.houseEntries, db.contacts, db.calendarEvents], async () => {
     if (data.transactions) { await db.transactions.clear(); await db.transactions.bulkAdd(data.transactions); }
     if (data.bills) { await db.bills.clear(); await db.bills.bulkAdd(data.bills); }
     if (data.debts) { await db.debts.clear(); await db.debts.bulkAdd(data.debts); }
@@ -246,5 +266,6 @@ export async function importAllData(json: string): Promise<void> {
     if (data.quickLinks) { await db.quickLinks.clear(); await db.quickLinks.bulkAdd(data.quickLinks); }
     if (data.houseEntries) { await db.houseEntries.clear(); await db.houseEntries.bulkAdd(data.houseEntries); }
     if (data.contacts) { await db.contacts.clear(); await db.contacts.bulkAdd(data.contacts); }
+    if (data.calendarEvents) { await db.calendarEvents.clear(); await db.calendarEvents.bulkAdd(data.calendarEvents); }
   });
 }
